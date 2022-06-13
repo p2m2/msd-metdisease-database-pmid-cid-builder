@@ -7,7 +7,8 @@ ThisBuild / organizationName := "p2m2"
 
 val sparkVersion  = "3.2.1"
 val hadoopVersion = "3.3.2"
-val sansaVersion  = "0.8.0-RC3"
+lazy val rdf4jVersion = "4.0.2"
+lazy val slf4j_version = "1.7.36"
 
 lazy val root = (project in file("."))
   .settings(
@@ -17,7 +18,11 @@ lazy val root = (project in file("."))
       scalaTest % Test,
       "org.apache.spark" %% "spark-core" % sparkVersion % "test,provided",
       "org.apache.spark" %% "spark-sql"  % sparkVersion % "test,provided",
-      "com.lihaoyi" %% "requests" % "0.7.1"
+      "com.lihaoyi" %% "requests" % "0.7.1",
+      "org.slf4j" % "slf4j-simple" % slf4j_version,
+      "org.eclipse.rdf4j" % "rdf4j-sail" % rdf4jVersion,
+      ("org.eclipse.rdf4j" % "rdf4j-storage" % rdf4jVersion)
+        .exclude("commons-codec","commons-codec"),
     ),
     resolvers ++= Seq(
       "AKSW Maven Releases" at "https://maven.aksw.org/archiva/repository/internal",

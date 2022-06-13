@@ -21,7 +21,16 @@ class PmidCidBuilderSpec extends AnyFlatSpec with Matchers {
       getClass.getResource("/pc_reference_type_test.ttl").getPath).length shouldEqual 497
   }
 
-  "elink" should "say hello" in {
-    EUtils.elink("pubmed","pccompound",Seq("7844144","234739")) shouldEqual Seq()
+  val r =  Map(
+    "7844144" -> Seq(),
+    "234739" -> Seq("33558", "23973", "6274","5975","1986","312")
+  )
+
+  "elink" should "work" in {
+    EUtils.elink("pubmed","pccompound",Seq("7844144","234739")) shouldEqual r
+  }
+
+  "buildCitoDiscusses" should "work" in {
+    PmidCidBuilder.buildCitoDiscusses(r)
   }
 }

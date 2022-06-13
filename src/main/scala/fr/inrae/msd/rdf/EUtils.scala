@@ -9,7 +9,7 @@ case object EUtils {
    * Finding Related Data Through Entrez Links
    */
 
-  def elink(dbFrom : String,db : String, uid_list : Seq[String]) = {
+  def elink(dbFrom : String,db : String, uid_list : Seq[String]) : Map[String,Seq[String]] = {
 
     println(base+s"elink.fcgi?dbfrom=$dbFrom&db=$db" +
       s"&id=${uid_list.map(_.trim).mkString("&id=")}")
@@ -20,5 +20,5 @@ case object EUtils {
 
     xml \\ "LinkSet" map  { linkSet =>
       (linkSet \\ "IdList" \\ "Id").text -> (linkSet \\ "LinkSetDb" \\ "Link" \\ "Id" map { id => id.text }) }
-  }
+  }.toMap
 }
