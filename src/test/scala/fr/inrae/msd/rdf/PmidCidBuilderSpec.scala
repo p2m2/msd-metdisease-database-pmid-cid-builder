@@ -20,4 +20,8 @@ class PmidCidBuilderSpec extends AnyFlatSpec with Matchers {
       spark,
       getClass.getResource("/pc_reference_type_test.ttl").getPath).length shouldEqual 497
   }
+
+  "elink" should "say hello" in {
+    EUtils.elink("pubmed","pccompound",Seq("7844144","234739")) shouldEqual Seq()
+  }
 }

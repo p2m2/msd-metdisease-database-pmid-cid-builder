@@ -15,8 +15,9 @@ lazy val root = (project in file("."))
 
 		libraryDependencies ++= Seq(
       scalaTest % Test,
-      "org.apache.spark" %% "spark-core"      % sparkVersion % "test,provided",
-      "org.apache.spark" %% "spark-sql"       % sparkVersion % "test,provided",
+      "org.apache.spark" %% "spark-core" % sparkVersion % "test,provided",
+      "org.apache.spark" %% "spark-sql"  % sparkVersion % "test,provided",
+      "com.lihaoyi" %% "requests" % "0.7.1"
     ),
     resolvers ++= Seq(
       "AKSW Maven Releases" at "https://maven.aksw.org/archiva/repository/internal",
