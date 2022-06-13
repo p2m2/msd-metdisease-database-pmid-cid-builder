@@ -20,9 +20,8 @@ lazy val root = (project in file("."))
       "org.apache.spark" %% "spark-sql"  % sparkVersion % "test,provided",
       "com.lihaoyi" %% "requests" % "0.7.1",
       "org.slf4j" % "slf4j-simple" % slf4j_version,
-      "org.eclipse.rdf4j" % "rdf4j-sail" % rdf4jVersion,
-      ("org.eclipse.rdf4j" % "rdf4j-storage" % rdf4jVersion)
-        .exclude("commons-codec","commons-codec"),
+      ("org.eclipse.rdf4j" % "rdf4j-sail" % rdf4jVersion).exclude("commons-codec","commons-codec"),
+      ("org.eclipse.rdf4j" % "rdf4j-storage" % rdf4jVersion).exclude("commons-codec","commons-codec")
     ),
     resolvers ++= Seq(
       "AKSW Maven Releases" at "https://maven.aksw.org/archiva/repository/internal",
@@ -34,7 +33,16 @@ lazy val root = (project in file("."))
       Resolver.mavenLocal,
       "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository",
       "Apache Staging" at "https://repository.apache.org/content/repositories/staging/"
-    )
+    ),
+    assembly / assemblyJarName := s"msd-metdisease-database-pmid-cid-builder.jar",
+    assembly / logLevel := Level.Info,
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+      case "module-info.class"  => MergeStrategy.first
+      case x =>
+        val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
+        oldStrategy(x)
+    }
   )
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
