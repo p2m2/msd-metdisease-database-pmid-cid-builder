@@ -10,7 +10,7 @@ import org.eclipse.rdf4j.rio.helpers.StatementCollector
 
 import java.io.{ByteArrayInputStream, IOException, InputStream}
 import java.nio.charset.StandardCharsets
-import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
 
 case object PmidCidWork {
   def getPMIDListFromReference(spark : SparkSession,referencePath: String): Seq[String] = {
@@ -27,7 +27,7 @@ case object PmidCidWork {
         try {
           val results : Model = Rio.parse(targetStream, referencePath, RDFFormat.TURTLE)
           val f = results.getStatements(null,RDF.TYPE,iri("http://purl.org/spar/fabio/JournalArticle"))
-          f.asScala.toSeq.map( r => r.getSubject.toString.split("http://rdf.ncbi.nlm.nih.gov/pubchem/reference/")(1))
+          f.toSeq.map( r => r.getSubject.toString.split("http://rdf.ncbi.nlm.nih.gov/pubchem/reference/")(1))
         } catch {
           case e: IOException =>
             System.err.println(" ==================== IOException ===================")

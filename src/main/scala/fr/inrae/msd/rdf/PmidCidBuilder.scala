@@ -83,7 +83,7 @@ object PmidCidBuilder {
   }
 
 
-  def main(args: Array[String]) = {
+  def main(args: Array[String]): Unit = {
     val spark = SparkSession
       .builder()
       .appName("msd-metdisease-database-pmid-cid-builder")

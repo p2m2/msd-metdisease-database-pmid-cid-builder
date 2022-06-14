@@ -1,12 +1,11 @@
 import Dependencies._
 
-ThisBuild / scalaVersion     := "2.13.8"
+ThisBuild / scalaVersion     := "2.12.16"
 ThisBuild / version          := "0.1.0-SNAPSHOT"
 ThisBuild / organization     := "com.github.p2m2"
 ThisBuild / organizationName := "p2m2"
 
-val sparkVersion  = "3.2.1"
-val hadoopVersion = "3.3.2"
+val sparkVersion  = "3.1.3"
 lazy val rdf4jVersion = "4.0.2"
 lazy val slf4j_version = "1.7.36"
 
