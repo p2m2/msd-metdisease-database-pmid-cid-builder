@@ -100,7 +100,7 @@ object PmidCidBuilder {
           config.databaseMsd,
           config.versionMsd match {
             case Some(version) => version
-            case None => MsdUtils(config.categoryMsd,config.databaseMsd,spark).getLastVersion()
+            case None => MsdUtils(category=config.categoryMsd,database=config.databaseMsd,spark=spark).getLastVersion()
           },
           config.maxTriplesByFiles,
           config.referenceUriPrefix,
@@ -118,7 +118,7 @@ object PmidCidBuilder {
     }
   }
 
-  def build( categoryMsd : String,
+  def build(categoryMsd : String,
             databaseMsd : String,
             versionMsd: String,
             maxTriplesByFiles: Int,
@@ -128,12 +128,14 @@ object PmidCidBuilder {
             timeout : Int,
             verbose: Boolean,
             debug: Boolean) {
-
+    println("============== Main Build ====================")
+    println(s"categoryMsd=$categoryMsd,databaseMsd=$databaseMsd,versionMsd=$versionMsd")
+/*
     PmidCidWork.buildCitoDiscusses(EUtils.elink(
       dbFrom="pubmed",
       db="pccompound",
-      PmidCidWork.getPMIDListFromReference(spark,MsdUtils(categoryMsd,databaseMsd,spark).getPath(versionMsd))))
-
+      PmidCidWork.getPMIDListFromReference(spark,MsdUtils(category=categoryMsd,database=databaseMsd,spark=spark).getPath(versionMsd))))
+*/
   }
 
 }

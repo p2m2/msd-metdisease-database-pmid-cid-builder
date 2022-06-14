@@ -33,4 +33,7 @@ class PmidCidBuilderSpec extends AnyFlatSpec with Matchers {
   "buildCitoDiscusses" should "work" in {
     PmidCidWork.buildCitoDiscusses(r)
   }
+  "getLastVersion()" should "ok" in {
+    MsdUtils(".","src","test",spark).getLastVersion()
+  }
 }
