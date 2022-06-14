@@ -36,7 +36,7 @@ object PmidCidBuilder {
       programName("msd-metdisease-database-pmid-cid-builder"),
       head("msd-metdisease-database-pmid-cid-builder", "1.0"),
       opt[String]('r', "versionMsd")
-        .required()
+        .optional()
         .valueName("<versionMsd>")
         .action((x, c) => c.copy(versionMsd = Some(x)))
         .text("versionMsd : release of reference/pubchem database"),
@@ -57,6 +57,7 @@ object PmidCidBuilder {
         .valueName("<packSize>")
         .text("packSize to request pmid/cid eutils/elink API."),
       opt[String]("apiKey")
+        .optional()
         .action({ case (r, c) => c.copy(apiKey = Some(r)) })
         .valueName("<apiKey>")
         .text("apiKey to request pmid/cid eutils/elink API."),
@@ -69,6 +70,7 @@ object PmidCidBuilder {
         .valueName("<timeout>")
         .text("timeout to manage error request pmid/cid eutils/elink API."),
       opt[Unit]("verbose")
+        .optional()
         .action((_, c) => c.copy(verbose = true))
         .text("verbose is a flag"),
       opt[Unit]("debug")
@@ -81,13 +83,13 @@ object PmidCidBuilder {
       checkConfig(_ => success)
     )
   }
-
+  val spark = SparkSession
+    .builder()
+    .appName("msd-metdisease-database-pmid-cid-builder")
+    .getOrCreate()
 
   def main(args: Array[String]): Unit = {
-    val spark = SparkSession
-      .builder()
-      .appName("msd-metdisease-database-pmid-cid-builder")
-      .getOrCreate()
+
     // OParser.parse returns Option[Config]
     OParser.parse(parser1, args, Config()) match {
       case Some(config) =>
@@ -105,7 +107,7 @@ object PmidCidBuilder {
           config.packSize,
           config.apiKey match {
             case Some(apiK) => apiK
-            case None => throw new Exception("None API key pubchem defined.")
+            case None => ""
           },
           config.timeout,
           config.verbose,
@@ -126,14 +128,11 @@ object PmidCidBuilder {
             timeout : Int,
             verbose: Boolean,
             debug: Boolean) {
-    val spark = SparkSession
-      .builder()
-      .appName("msd-metdisease-database-pmid-cid-builder")
-      .getOrCreate()
+
     PmidCidWork.buildCitoDiscusses(EUtils.elink(
       dbFrom="pubmed",
       db="pccompound",
-      PmidCidWork.getPMIDListFromReference(spark,"path/...")))
+      PmidCidWork.getPMIDListFromReference(spark,MsdUtils(categoryMsd,databaseMsd,spark).getPath(versionMsd))))
 
   }
 
