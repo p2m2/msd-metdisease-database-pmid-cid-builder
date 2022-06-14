@@ -130,6 +130,11 @@ object PmidCidBuilder {
             debug: Boolean) {
     println("============== Main Build ====================")
     println(s"categoryMsd=$categoryMsd,databaseMsd=$databaseMsd,versionMsd=$versionMsd")
+    println("==============  getPMIDListFromReference ====================")
+    val l = PmidCidWork
+      .getPMIDListFromReference(spark,
+        MsdUtils(category=categoryMsd,database=databaseMsd,spark=spark).getPath(versionMsd)+"/pc_reference_type.ttl")
+    println(l)
 /*
     PmidCidWork.buildCitoDiscusses(EUtils.elink(
       dbFrom="pubmed",

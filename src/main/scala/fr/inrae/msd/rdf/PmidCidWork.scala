@@ -14,37 +14,43 @@ import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
 
 case object PmidCidWork {
   def getPMIDListFromReference(spark : SparkSession,referencePath: String): Seq[String] = {
+    println("========= getPMIDListFromReference ===============")
     import spark.implicits._
-        val rdfParser = Rio.createParser(RDFFormat.TURTLE)
+    println("========= build parser ===============")
+    val rdfParser = Rio.createParser(RDFFormat.TURTLE)
 
-        val model = new LinkedHashModel
-        rdfParser.setRDFHandler(new StatementCollector(model))
-        val str : String = spark.read.text(referencePath).collect().map(row => row.mkString("")).mkString("\n")
+    val model = new LinkedHashModel
+    rdfParser.setRDFHandler(new StatementCollector(model))
+    println(s"========= reading spark referenceFile=$referencePath ===============")
+    val str : String = spark.read.text(referencePath).collect().map(row => row.mkString("")).mkString("\n")
+    println("========= results(1,1000) ===============")
+    println(str.substring(1,1000))
 
-        val targetStream : InputStream  =
-          new ByteArrayInputStream(str.getBytes(StandardCharsets.UTF_8.name()))
 
-        try {
-          val results : Model = Rio.parse(targetStream, referencePath, RDFFormat.TURTLE)
-          val f = results.getStatements(null,RDF.TYPE,iri("http://purl.org/spar/fabio/JournalArticle"))
-          f.toSeq.map( r => r.getSubject.toString.split("http://rdf.ncbi.nlm.nih.gov/pubchem/reference/")(1))
-        } catch {
-          case e: IOException =>
-            System.err.println(" ==================== IOException ===================")
-            System.err.println(e.getMessage())
-            Seq()
-          // handle IO problems (e.g. the file could not be read)
-          case e: RDFParseException =>
-            System.err.println(" ==================== RDFParseException ===================")
-            System.err.println(e.getMessage())
-            Seq()
-          // handle unrecoverable parse error
-          case e: RDFHandlerException =>
-            System.err.println(" ==================== RDFHandlerException ===================")
-            System.err.println(e.getMessage())
-            Seq()
-          // handle a problem encountered by the RDFHandler
-        } finally targetStream.close
+    val targetStream : InputStream  =
+      new ByteArrayInputStream(str.getBytes(StandardCharsets.UTF_8.name()))
+
+    try {
+      val results : Model = Rio.parse(targetStream, referencePath, RDFFormat.TURTLE)
+      val f = results.getStatements(null,RDF.TYPE,iri("http://purl.org/spar/fabio/JournalArticle"))
+      f.toSeq.map( r => r.getSubject.toString.split("http://rdf.ncbi.nlm.nih.gov/pubchem/reference/")(1))
+    } catch {
+      case e: IOException =>
+        System.err.println(" ==================== IOException ===================")
+        System.err.println(e.getMessage())
+        Seq()
+      // handle IO problems (e.g. the file could not be read)
+      case e: RDFParseException =>
+        System.err.println(" ==================== RDFParseException ===================")
+        System.err.println(e.getMessage())
+        Seq()
+      // handle unrecoverable parse error
+      case e: RDFHandlerException =>
+        System.err.println(" ==================== RDFHandlerException ===================")
+        System.err.println(e.getMessage())
+        Seq()
+      // handle a problem encountered by the RDFHandler
+    } finally targetStream.close
   }
 
   def buildCitoDiscusses(mapPmidCid : Map[String,Seq[String]]) = {
