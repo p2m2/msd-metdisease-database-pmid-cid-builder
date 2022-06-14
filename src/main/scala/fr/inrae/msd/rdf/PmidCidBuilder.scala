@@ -9,8 +9,11 @@ import org.apache.spark.sql.SparkSession
  *
  * example using corese rdf4j : https://notes.inria.fr/s/OB038LBLV
  */
-
-case object PmidCidBuilder extends App {
+/*
+To avoid => Exception in thread "main" java.lang.NoSuchMethodError: scala.runtime.Statics.releaseFence()V
+can not extends App
+ */
+object PmidCidBuilder {
 
   import scopt.OParser
 
@@ -80,7 +83,7 @@ case object PmidCidBuilder extends App {
   }
 
 
-
+  def main(args: Array[String]): Unit = {
     val spark = SparkSession
       .builder()
       .appName("msd-metdisease-database-pmid-cid-builder")
@@ -90,7 +93,7 @@ case object PmidCidBuilder extends App {
       case Some(config) =>
         // do something
         println(config)
-        main(
+        build(
           config.categoryMsd,
           config.databaseMsd,
           config.versionMsd match {
@@ -110,10 +113,10 @@ case object PmidCidBuilder extends App {
       case _ =>
         // arguments are bad, error message will have been displayed
         System.err.println("exit with error.")
+    }
   }
 
-
-  def main( categoryMsd : String,
+  def build( categoryMsd : String,
             databaseMsd : String,
             versionMsd: String,
             maxTriplesByFiles: Int,
@@ -123,7 +126,10 @@ case object PmidCidBuilder extends App {
             timeout : Int,
             verbose: Boolean,
             debug: Boolean) {
-
+    val spark = SparkSession
+      .builder()
+      .appName("msd-metdisease-database-pmid-cid-builder")
+      .getOrCreate()
     PmidCidWork.buildCitoDiscusses(EUtils.elink(
       dbFrom="pubmed",
       db="pccompound",
