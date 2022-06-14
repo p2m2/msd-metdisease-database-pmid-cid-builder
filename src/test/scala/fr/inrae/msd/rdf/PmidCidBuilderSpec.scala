@@ -16,7 +16,7 @@ class PmidCidBuilderSpec extends AnyFlatSpec with Matchers {
   }
 */
   "Gt PMID List" should "say hello" in {
-    PmidCidBuilder.getPMIDListFromReference(
+    PmidCidWork.getPMIDListFromReference(
       spark,
       getClass.getResource("/pc_reference_type_test.ttl").getPath).length shouldEqual 497
   }
@@ -31,6 +31,6 @@ class PmidCidBuilderSpec extends AnyFlatSpec with Matchers {
   }
 
   "buildCitoDiscusses" should "work" in {
-    PmidCidBuilder.buildCitoDiscusses(r)
+    PmidCidWork.buildCitoDiscusses(r)
   }
 }

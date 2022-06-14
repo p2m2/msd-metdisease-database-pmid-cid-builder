@@ -19,6 +19,7 @@ lazy val root = (project in file("."))
       "org.apache.spark" %% "spark-core" % sparkVersion % "test,provided",
       "org.apache.spark" %% "spark-sql"  % sparkVersion % "test,provided",
       "com.lihaoyi" %% "requests" % "0.7.1",
+      "com.github.scopt" %% "scopt" % "4.0.1",
       "org.slf4j" % "slf4j-simple" % slf4j_version,
       ("org.eclipse.rdf4j" % "rdf4j-sail" % rdf4jVersion).exclude("commons-codec","commons-codec"),
       ("org.eclipse.rdf4j" % "rdf4j-storage" % rdf4jVersion).exclude("commons-codec","commons-codec")
