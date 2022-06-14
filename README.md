@@ -3,7 +3,8 @@
 ## command line
 
 ```
-spark-submit --class fr.inrae.msd.rdf.PmidCidBuilder --executor-memory 1G --num-executors 1 msd-metdisease-database-pmid-cid-builder-assembly-0.1.0-SNAPSHOT.jar
+export JAVA_HOME=/usr/local/openjdk/jdk-12.0.2+10/
+spark-submit --class fr.inrae.msd.rdf.PmidCidBuilder --executor-memory 1G --num-executors 1 msd-metdisease-database-pmid-cid-builder.jar --versionMsd "test"
 ```
 
 ### Info
