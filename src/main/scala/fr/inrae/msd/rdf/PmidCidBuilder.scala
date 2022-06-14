@@ -1,16 +1,7 @@
 package fr.inrae.msd.rdf
 
 import org.apache.spark.sql.SparkSession
-import org.eclipse.rdf4j.model.Model
-import org.eclipse.rdf4j.model.impl.LinkedHashModel
-import org.eclipse.rdf4j.model.util.Values.iri
-import org.eclipse.rdf4j.model.vocabulary.RDF
-import org.eclipse.rdf4j.rio.helpers.StatementCollector
-import org.eclipse.rdf4j.rio.{RDFFormat, RDFHandlerException, RDFParseException, Rio}
 
-import java.io.{ByteArrayInputStream, IOException, InputStream}
-import java.nio.charset.StandardCharsets
-import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
 
 /**
  * https://services.pfem.clermont.inrae.fr/gitlab/forum/metdiseasedatabase/-/blob/develop/app/build/import_PMID_CID.py
@@ -19,7 +10,7 @@ import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
  * example using corese rdf4j : https://notes.inria.fr/s/OB038LBLV
  */
 
-object PmidCidBuilder extends App {
+case object PmidCidBuilder extends App {
 
   import scopt.OParser
 
@@ -34,6 +25,7 @@ object PmidCidBuilder extends App {
                      timeout : Int = 1200,
                      verbose: Boolean = false,
                      debug: Boolean = false)
+
   val builder = OParser.builder[Config]
   val parser1 = {
     import builder._
@@ -86,25 +78,38 @@ object PmidCidBuilder extends App {
       checkConfig(_ => success)
     )
   }
-  // OParser.parse returns Option[Config]
-  OParser.parse(parser1, args, Config()) match {
-    case Some(config) =>
-      // do something
-      println(config)
-      main(
-        config.categoryMsd,
-        config.databaseMsd,
-        config.versionMsd.getOrElse(""),
-        config.maxTriplesByFiles,
-        config.referenceUriPrefix,
-        config.packSize,
-        config.apiKey.getOrElse(""),
-        config.timeout,
-        config.verbose,
-        config.debug)
-    case _ =>
-      // arguments are bad, error message will have been displayed
-      System.err.println("exit with error.")
+
+
+
+    val spark = SparkSession
+      .builder()
+      .appName("msd-metdisease-database-pmid-cid-builder")
+      .getOrCreate()
+    // OParser.parse returns Option[Config]
+    OParser.parse(parser1, args, Config()) match {
+      case Some(config) =>
+        // do something
+        println(config)
+        main(
+          config.categoryMsd,
+          config.databaseMsd,
+          config.versionMsd match {
+            case Some(version) => version
+            case None => MsdUtils(config.categoryMsd,config.databaseMsd,spark).getLastVersion()
+          },
+          config.maxTriplesByFiles,
+          config.referenceUriPrefix,
+          config.packSize,
+          config.apiKey match {
+            case Some(apiK) => apiK
+            case None => throw new Exception("None API key pubchem defined.")
+          },
+          config.timeout,
+          config.verbose,
+          config.debug)
+      case _ =>
+        // arguments are bad, error message will have been displayed
+        System.err.println("exit with error.")
   }
 
 
@@ -119,14 +124,11 @@ object PmidCidBuilder extends App {
             verbose: Boolean,
             debug: Boolean) {
 
-    val spark = SparkSession
-      .builder()
-      .appName("msd-metdisease-database-pmid-cid-builder")
-      .getOrCreate()
-
     PmidCidWork.buildCitoDiscusses(EUtils.elink(
       dbFrom="pubmed",
       db="pccompound",
       PmidCidWork.getPMIDListFromReference(spark,"path/...")))
+
   }
+
 }
