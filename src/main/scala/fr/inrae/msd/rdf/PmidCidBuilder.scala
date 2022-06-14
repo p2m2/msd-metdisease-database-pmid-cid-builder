@@ -83,13 +83,13 @@ object PmidCidBuilder {
       checkConfig(_ => success)
     )
   }
-
+  val spark = SparkSession
+    .builder()
+    .appName("msd-metdisease-database-pmid-cid-builder")
+    .getOrCreate()
 
   def main(args: Array[String]): Unit = {
-    val spark = SparkSession
-      .builder()
-      .appName("msd-metdisease-database-pmid-cid-builder")
-      .getOrCreate()
+
     // OParser.parse returns Option[Config]
     OParser.parse(parser1, args, Config()) match {
       case Some(config) =>
@@ -128,14 +128,11 @@ object PmidCidBuilder {
             timeout : Int,
             verbose: Boolean,
             debug: Boolean) {
-    val spark = SparkSession
-      .builder()
-      .appName("msd-metdisease-database-pmid-cid-builder")
-      .getOrCreate()
+
     PmidCidWork.buildCitoDiscusses(EUtils.elink(
       dbFrom="pubmed",
       db="pccompound",
-      PmidCidWork.getPMIDListFromReference(spark,"path/...")))
+      PmidCidWork.getPMIDListFromReference(spark,MsdUtils(categoryMsd,databaseMsd,spark).getPath(versionMsd))))
 
   }
 

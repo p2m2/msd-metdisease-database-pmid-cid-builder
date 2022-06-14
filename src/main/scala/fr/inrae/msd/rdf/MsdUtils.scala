@@ -9,8 +9,11 @@ case class MsdUtils(category : String, database : String,spark : SparkSession) {
 
   def getLastVersion() : String = {
     val fs = org.apache.hadoop.fs.FileSystem.get(spark.sparkContext.hadoopConfiguration)
+    println(" ============================================= getLastVersion =========================")
     fs.listStatus(new Path(s"${basedir}")).filter(_.isDirectory).map(_.getPath).foreach(println)
     ""
   }
+
+  def getPath(version : String ) = s"$basedir/$version"
 
 }
