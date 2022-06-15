@@ -1,6 +1,7 @@
 package fr.inrae.msd.rdf
 
 import org.apache.spark.sql.SparkSession
+import org.eclipse.rdf4j.rio.RDFFormat
 
 
 /**
@@ -19,9 +20,11 @@ object PmidCidBuilder {
 
   case class Config(
                      rootMsdDirectory : String = "/rdf",
-                     categoryMsd : String = "pubchem", //"/rdf/pubchem/compound-general/2021-11-23",
-                     databaseMsd : String = "reference", // "/rdf/pubchem/reference/2021-11-23",
-                     versionMsd: Option[String] = None,
+                     forumCategoryMsd : String = "forum",
+                     forumDatabaseMsd : String = "PMID_CID",
+                     pubchemCategoryMsd : String = "pubchem", //"/rdf/pubchem/compound-general/2021-11-23",
+                     pubchemDatabaseMsd : String = "reference", // "/rdf/pubchem/reference/2021-11-23",
+                     pubchemVersionMsd: Option[String] = None,
                      maxTriplesByFiles: Int = 5000000,
                      referenceUriPrefix: String = "http://rdf.ncbi.nlm.nih.gov/pubchem/reference/PMID",
                      packSize : Int = 300,
@@ -44,7 +47,7 @@ object PmidCidBuilder {
       opt[String]('r', "versionMsd")
         .optional()
         .valueName("<versionMsd>")
-        .action((x, c) => c.copy(versionMsd = Some(x)))
+        .action((x, c) => c.copy(pubchemVersionMsd = Some(x)))
         .text("versionMsd : release of reference/pubchem database"),
       opt[Int]("maxTriplesByFiles")
         .optional()
@@ -103,11 +106,13 @@ object PmidCidBuilder {
         println(config)
         build(
           config.rootMsdDirectory,
-          config.categoryMsd,
-          config.databaseMsd,
-          config.versionMsd match {
+          config.forumCategoryMsd,
+          config.forumDatabaseMsd,
+          config.pubchemCategoryMsd,
+          config.pubchemDatabaseMsd,
+          config.pubchemVersionMsd match {
             case Some(version) => version
-            case None => MsdUtils(category=config.categoryMsd,database=config.databaseMsd,spark=spark).getLastVersion()
+            case None => MsdUtils(category=config.pubchemCategoryMsd,database=config.pubchemDatabaseMsd,spark=spark).getLastVersion()
           },
           config.maxTriplesByFiles,
           config.referenceUriPrefix,
@@ -127,6 +132,8 @@ object PmidCidBuilder {
 
   def build(
              rootMsdDirectory : String,
+             forumCategoryMsd : String,
+             forumDatabaseMsd : String,
              categoryMsd : String,
              databaseMsd : String,
              versionMsd: String,
@@ -160,9 +167,12 @@ object PmidCidBuilder {
     println(pmidCitoDiscussesCid.slice(1,100)+"...")
 
     val turtle = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCid)
-    println("================ Turtle ==============")
-    println(turtle)
-
+    println("================ Write Turtle pmid_cid.ttl ==============")
+    MsdUtils(
+      rootDir=rootMsdDirectory,
+      category=forumCategoryMsd,
+      database=forumDatabaseMsd,
+      spark=spark).writeRdf(turtle,RDFFormat.TURTLE,"pmid_cid.ttl")
   }
 
 }

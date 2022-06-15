@@ -21,8 +21,6 @@ case object EUtils {
       .grouped(packSize)
       .flatMap(
       uid_list_sub => {
-        println("-----------------------------------")
-        println(uid_list_sub)
         val p =requests.post(
           base+s"elink.fcgi",
           params = Seq(
@@ -30,12 +28,7 @@ case object EUtils {
             "dbfrom" -> dbFrom,
             "db" -> db) ++ uid_list_sub.map( "id" -> _ )
         )
-        println("-----------------------------------2")
-        println(p.toString)
-
         val xml = scala.xml.XML.loadString(p.text)
-
-        println("OK====>"+xml)
         xml \\ "LinkSet" map  { linkSet =>
           (linkSet \\ "IdList" \\ "Id").text -> (linkSet \\ "LinkSetDb" \\ "Link" \\ "Id" map { id => id.text }) }
       }.toList)

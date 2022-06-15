@@ -3,6 +3,7 @@ package fr.inrae.msd.rdf
 import org.apache.spark.sql.SparkSession
 import org.eclipse.rdf4j.model.Model
 import org.eclipse.rdf4j.model.impl.LinkedHashModel
+import org.eclipse.rdf4j.model.util.ModelBuilder
 import org.eclipse.rdf4j.model.util.Values.iri
 import org.eclipse.rdf4j.model.vocabulary.RDF
 import org.eclipse.rdf4j.rio.helpers.StatementCollector
@@ -53,14 +54,20 @@ case object PmidCidWork {
     } finally targetStream.close
   }
 
-  def buildCitoDiscusses(mapPmidCid : Map[String,Seq[String]])  = {
-    println("@prefix cito: <http://purl.org/spar/cito/> .")
-    println("@prefix compound: <http://rdf.ncbi.nlm.nih.gov/pubchem/compound/> .")
-    println("@prefix reference: <http://rdf.ncbi.nlm.nih.gov/pubchem/reference/> .")
+  def buildCitoDiscusses(mapPmidCid : Map[String,Seq[String]]) : Model  = {
 
-    mapPmidCid.map {
+    val builder = new ModelBuilder
+
+    // set some namespaces
+    builder
+      .setNamespace("cito", "http://purl.org/spar/cito/")
+      .setNamespace("compound", "http://rdf.ncbi.nlm.nih.gov/pubchem/compound/")
+      .setNamespace("reference", "http://rdf.ncbi.nlm.nih.gov/pubchem/reference/")
+
+    mapPmidCid.foreach {
       case (pmid,listCid) =>listCid.foreach( cid =>
-        println(s"reference:PMID$pmid cito:discusses compound:CID$cid") )
-    }
+        builder.defaultGraph.subject(s"reference:PMID$pmid").add("cito:discusses", s"compound:CID$cid")
+      )}
+    builder.build()
   }
 }
