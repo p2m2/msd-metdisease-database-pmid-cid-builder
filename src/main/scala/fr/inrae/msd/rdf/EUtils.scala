@@ -16,11 +16,14 @@ case object EUtils {
              db : String,
              uid_list : Seq[String]) : Map[String,Seq[String]] = {
 
+    println("*********************************elink**************************")
     uid_list
+      //.slice(1,20)
       .map(_.toLowerCase.replace("pmid","").trim)
       .grouped(packSize)
       .flatMap(
       uid_list_sub => {
+        println("*********************************REQUEST**************************")
         val p =requests.post(
           base+s"elink.fcgi",
           params = Seq(

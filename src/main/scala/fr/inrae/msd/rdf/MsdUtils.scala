@@ -11,14 +11,14 @@ case class MsdUtils(rootDir : String = "/rdf", category : String, database : Str
   val fs = org.apache.hadoop.fs.FileSystem.get(spark.sparkContext.hadoopConfiguration)
 
   def getLastVersion() : String = {
-
+    println("************** getLastVersion ************************** ")
     fs.listStatus(new Path(s"$basedir"))
       .filter(_.isDirectory)
       .map( (a : FileStatus) => (a.getModificationTime,a.getPath) )
       .sortWith( (a,b) => a._1<b._1)
       .lastOption match {
       case Some(value) => value._2.getName
-      case None => ""
+      case None => throw new Exception(s"Can not get last version at $basedir")
     }
   }
 
@@ -30,13 +30,15 @@ case class MsdUtils(rootDir : String = "/rdf", category : String, database : Str
 
   def getPath(version : String ) = s"$basedir/$version"
 
-  def writeRdf(model:Model,format : RDFFormat, outputPathFile : String): Unit = {
+  def writeRdf(model:Model,format : RDFFormat, version : String, outputPathFile : String): Unit = {
 
-    if (! fs.exists(new Path(basedir))) {
-      fs.mkdirs(new Path(basedir))
+    val outDir : String = basedir+"/"+version
+
+    if (! fs.exists(new Path(outDir))) {
+      fs.mkdirs(new Path(outDir))
     }
 
-    val path = new Path(s"$basedir/$outputPathFile")
+    val path = new Path(s"$outDir/$outputPathFile")
     val out : FSDataOutputStream = FileSystem.create(fs,path,FileContext.DEFAULT_PERM)
     try Rio.write(model, out, format)
     finally out.close

@@ -112,7 +112,10 @@ object PmidCidBuilder {
           config.pubchemDatabaseMsd,
           config.pubchemVersionMsd match {
             case Some(version) => version
-            case None => MsdUtils(category=config.pubchemCategoryMsd,database=config.pubchemDatabaseMsd,spark=spark).getLastVersion()
+            case None => MsdUtils(
+              rootDir=config.rootMsdDirectory,
+              category=config.pubchemCategoryMsd,
+              database=config.pubchemDatabaseMsd,spark=spark).getLastVersion()
           },
           config.maxTriplesByFiles,
           config.referenceUriPrefix,
@@ -151,10 +154,16 @@ object PmidCidBuilder {
       rootDir=rootMsdDirectory,
       category=categoryMsd,
       database=databaseMsd,
-      spark=spark).getListFiles(versionMsd,".*_type_.*\\.ttl")
+      spark=spark).getListFiles(versionMsd,".*_type.*\\.ttl")
 
     println("================listReferenceFileNames==============")
     println(listReferenceFileNames)
+
+    if (listReferenceFileNames.length<=0) {
+      println(s"None reference file in $rootMsdDirectory/$categoryMsd/$databaseMsd/$versionMsd")
+      spark.close()
+      System.exit(0)
+    }
 
     val pmids = listReferenceFileNames.flatMap(
       referenceFileName => PmidCidWork
@@ -167,12 +176,14 @@ object PmidCidBuilder {
     println(pmidCitoDiscussesCid.slice(1,100)+"...")
 
     val turtle = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCid)
-    println("================ Write Turtle pmid_cid.ttl ==============")
+    println(s"================ Write Turtle $rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl ==============")
     MsdUtils(
       rootDir=rootMsdDirectory,
       category=forumCategoryMsd,
       database=forumDatabaseMsd,
-      spark=spark).writeRdf(turtle,RDFFormat.TURTLE,"pmid_cid.ttl")
+      spark=spark).writeRdf(turtle,RDFFormat.TURTLE,versionMsd,"pmid_cid.ttl")
+
+    spark.close()
   }
 
 }
