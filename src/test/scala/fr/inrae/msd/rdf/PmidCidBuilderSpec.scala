@@ -5,11 +5,12 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class PmidCidBuilderSpec extends AnyFlatSpec with Matchers {
-  var spark = SparkSession
+  var spark =
+    SparkSession
     .builder()
-    .master("local[*]")
-    .getOrCreate()
-
+      .appName("local-test")
+      .master("local[*]")
+      .getOrCreate()
 /*
   "The Hello object" should "say hello" in {
     PmidCidBuilder.testRun(spark) shouldEqual "hello"

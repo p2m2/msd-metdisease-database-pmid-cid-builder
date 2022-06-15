@@ -18,13 +18,14 @@ object PmidCidBuilder {
   import scopt.OParser
 
   case class Config(
+                     rootMsdDirectory : String = "/rdf",
                      categoryMsd : String = "pubchem", //"/rdf/pubchem/compound-general/2021-11-23",
                      databaseMsd : String = "reference", // "/rdf/pubchem/reference/2021-11-23",
                      versionMsd: Option[String] = None,
                      maxTriplesByFiles: Int = 5000000,
                      referenceUriPrefix: String = "http://rdf.ncbi.nlm.nih.gov/pubchem/reference/PMID",
-                     packSize : Int = 5000,
-                     apiKey : Option[String] = None,
+                     packSize : Int = 300,
+                     apiKey : Option[String] = Some("30bc501ba6ab4cba2feedffb726cbe825c0a"),
                      timeout : Int = 1200,
                      verbose: Boolean = false,
                      debug: Boolean = false)
@@ -35,6 +36,11 @@ object PmidCidBuilder {
     OParser.sequence(
       programName("msd-metdisease-database-pmid-cid-builder"),
       head("msd-metdisease-database-pmid-cid-builder", "1.0"),
+      opt[String]('d', "rootMsdDirectory")
+        .optional()
+        .valueName("<rootMsdDirectory>")
+        .action((x, c) => c.copy(rootMsdDirectory = x))
+        .text("versionMsd : release of reference/pubchem database"),
       opt[String]('r', "versionMsd")
         .optional()
         .valueName("<versionMsd>")
@@ -96,6 +102,7 @@ object PmidCidBuilder {
         // do something
         println(config)
         build(
+          config.rootMsdDirectory,
           config.categoryMsd,
           config.databaseMsd,
           config.versionMsd match {
@@ -118,29 +125,44 @@ object PmidCidBuilder {
     }
   }
 
-  def build(categoryMsd : String,
-            databaseMsd : String,
-            versionMsd: String,
-            maxTriplesByFiles: Int,
-            referenceUriPrefix: String,
-            packSize : Int,
-            apiKey : String,
-            timeout : Int,
-            verbose: Boolean,
-            debug: Boolean) {
+  def build(
+             rootMsdDirectory : String,
+             categoryMsd : String,
+             databaseMsd : String,
+             versionMsd: String,
+             maxTriplesByFiles: Int,
+             referenceUriPrefix: String,
+             packSize : Int,
+             apiKey : String,
+             timeout : Int,
+             verbose: Boolean,
+             debug: Boolean) {
     println("============== Main Build ====================")
     println(s"categoryMsd=$categoryMsd,databaseMsd=$databaseMsd,versionMsd=$versionMsd")
     println("==============  getPMIDListFromReference ====================")
-    val l = PmidCidWork
-      .getPMIDListFromReference(spark,
-        MsdUtils(category=categoryMsd,database=databaseMsd,spark=spark).getPath(versionMsd)+"/pc_reference_type.ttl")
-    println(l)
-/*
-    PmidCidWork.buildCitoDiscusses(EUtils.elink(
-      dbFrom="pubmed",
-      db="pccompound",
-      PmidCidWork.getPMIDListFromReference(spark,MsdUtils(category=categoryMsd,database=databaseMsd,spark=spark).getPath(versionMsd))))
-*/
+    val listReferenceFileNames = MsdUtils(
+      rootDir=rootMsdDirectory,
+      category=categoryMsd,
+      database=databaseMsd,
+      spark=spark).getListFiles(versionMsd,".*_type_.*\\.ttl")
+
+    println("================listReferenceFileNames==============")
+    println(listReferenceFileNames)
+
+    val pmids = listReferenceFileNames.flatMap(
+      referenceFileName => PmidCidWork
+      .getPMIDListFromReference(spark,referenceFileName))
+    println(s"================PMID List (${pmids.length})==============")
+    println(pmids.slice(1,100)+"...")
+
+    val pmidCitoDiscussesCid = EUtils.elink(apikey=apiKey,packSize=packSize,dbFrom="pubmed", db="pccompound",pmids)
+    println(s"================pmidCitoDiscussesCid (${pmidCitoDiscussesCid.size})==============")
+    println(pmidCitoDiscussesCid.slice(1,100)+"...")
+
+    val turtle = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCid)
+    println("================ Turtle ==============")
+    println(turtle)
+
   }
 
 }

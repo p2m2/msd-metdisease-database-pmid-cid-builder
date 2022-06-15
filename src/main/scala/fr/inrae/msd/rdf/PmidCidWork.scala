@@ -5,8 +5,8 @@ import org.eclipse.rdf4j.model.Model
 import org.eclipse.rdf4j.model.impl.LinkedHashModel
 import org.eclipse.rdf4j.model.util.Values.iri
 import org.eclipse.rdf4j.model.vocabulary.RDF
-import org.eclipse.rdf4j.rio.{RDFFormat, RDFHandlerException, RDFParseException, Rio}
 import org.eclipse.rdf4j.rio.helpers.StatementCollector
+import org.eclipse.rdf4j.rio.{RDFFormat, RDFHandlerException, RDFParseException, Rio}
 
 import java.io.{ByteArrayInputStream, IOException, InputStream}
 import java.nio.charset.StandardCharsets
@@ -53,7 +53,7 @@ case object PmidCidWork {
     } finally targetStream.close
   }
 
-  def buildCitoDiscusses(mapPmidCid : Map[String,Seq[String]]) = {
+  def buildCitoDiscusses(mapPmidCid : Map[String,Seq[String]])  = {
     println("@prefix cito: <http://purl.org/spar/cito/> .")
     println("@prefix compound: <http://rdf.ncbi.nlm.nih.gov/pubchem/compound/> .")
     println("@prefix reference: <http://rdf.ncbi.nlm.nih.gov/pubchem/reference/> .")
