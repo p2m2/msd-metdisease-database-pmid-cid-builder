@@ -28,7 +28,7 @@ class PmidCidBuilderSpec extends AnyFlatSpec with Matchers {
   )
 
   "elink" should "work" in {
-    EUtils.elink("pubmed","pccompound",Seq("7844144","234739")) shouldEqual r
+    EUtils.elink("aa",10,"pubmed","pccompound",Seq("7844144","234739")) shouldEqual r
   }
 
   "buildCitoDiscusses" should "work" in {

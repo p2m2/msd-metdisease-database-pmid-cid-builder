@@ -17,13 +17,17 @@ lazy val root = (project in file("."))
       scalaTest % Test,
       "org.apache.spark" %% "spark-core" % sparkVersion % "test,provided",
       "org.apache.spark" %% "spark-sql"  % sparkVersion % "test,provided",
-     // "org.apache.hadoop" % "hadoop-common" % "3.3.3" % "test,provided",
+      "org.apache.hadoop" % "hadoop-common" % "3.3.1" % "test,provided",
       "org.apache.hadoop" % "hadoop-client" % "3.3.3" % "test,provided",
       //"org.apache.hadoop" % "hadoop-hdfs" % "3.3.3" % "test,provided",
       "org.apache.commons" % "commons-configuration2" % "2.7"  % "test,provided",
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.5.1" % "test,provided",
       "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.13.3" % "test,provided",
       "net.sansa-stack" %% "sansa-rdf-spark" % "0.8.0-RC3",
+      ("net.sansa-stack" %% "sansa-ml-spark" % "0.8.0-RC3")
+        .exclude("org.apache.zookeeper","zookeeper")
+        .exclude("org.apache.hadoop","hadoop-common")
+      ,
       "com.lihaoyi" %% "requests" % "0.7.1",
       "com.github.scopt" %% "scopt" % "4.0.1",
     /*  "org.slf4j" % "slf4j-simple" % slf4j_version,
@@ -50,10 +54,18 @@ lazy val root = (project in file("."))
       case "META-INF/io.netty.versions.properties" => MergeStrategy.first
       case "META-INF/versions/9/module-info.class" => MergeStrategy.first
       case "module-info.class"  => MergeStrategy.first
-      case x if x.endsWith("Messages.properties")  => MergeStrategy.first
-      case x if x.endsWith("git.properties")  => MergeStrategy.discard
+      //case x if x.endsWith("Messages.properties")  => MergeStrategy.first
+      case x if x.endsWith(".properties")  => MergeStrategy.discard
       case x if x.endsWith(".ttl")  => MergeStrategy.first
-      case x if x.endsWith(".class")  => MergeStrategy.first
+      case x if x.endsWith(".nt")  => MergeStrategy.first
+      case x if x.endsWith(".txt")  => MergeStrategy.discard
+      case x if x.endsWith(".class") ||
+        x.endsWith("plugin.xml") ||
+        x.endsWith(".res") ||
+        x.endsWith(".xsd") ||
+        x.endsWith(".proto") ||
+        x.endsWith(".dtd")  ||
+        x.endsWith(".ExtensionModule")=> MergeStrategy.first
       case x =>
         val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
         oldStrategy(x)
