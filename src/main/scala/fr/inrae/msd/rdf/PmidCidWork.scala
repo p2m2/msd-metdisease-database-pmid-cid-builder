@@ -1,73 +1,22 @@
 package fr.inrae.msd.rdf
 
-import org.apache.spark.sql.SparkSession
-import org.eclipse.rdf4j.model.Model
-import org.eclipse.rdf4j.model.impl.LinkedHashModel
-import org.eclipse.rdf4j.model.util.ModelBuilder
-import org.eclipse.rdf4j.model.util.Values.iri
-import org.eclipse.rdf4j.model.vocabulary.RDF
-import org.eclipse.rdf4j.rio.helpers.StatementCollector
-import org.eclipse.rdf4j.rio.{RDFFormat, RDFHandlerException, RDFParseException, Rio}
+import net.sansa_stack.rdf.spark.io.RDFReader
 
-import java.io.{ByteArrayInputStream, IOException, InputStream}
-import java.nio.charset.StandardCharsets
-import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
+import org.apache.jena.riot.Lang
+import org.apache.spark.sql.SparkSession
 
 case object PmidCidWork {
   def getPMIDListFromReference(spark : SparkSession,referencePath: String): Seq[String] = {
-    println("========= getPMIDListFromReference ===============")
-    import spark.implicits._
-    println("========= build parser ===============")
-    val rdfParser = Rio.createParser(RDFFormat.TURTLE)
+    val lang = Lang.TURTLE
 
-    val model = new LinkedHashModel
-    rdfParser.setRDFHandler(new StatementCollector(model))
-    println(s"========= reading spark referenceFile=$referencePath ===============")
+    val triples = spark.rdf(lang)(referencePath).collect()
+    println(triples.mkString(","))
+
     val str : String = spark.read.text(referencePath).collect().map(row => row.mkString("")).mkString("\n")
-    println("========= results(1,1000) ===============")
-    println(str.substring(1,1000))
-
-
-    val targetStream : InputStream  =
-      new ByteArrayInputStream(str.getBytes(StandardCharsets.UTF_8.name()))
-
-    try {
-      val results : Model = Rio.parse(targetStream, referencePath, RDFFormat.TURTLE)
-      val f = results.getStatements(null,RDF.TYPE,iri("http://purl.org/spar/fabio/JournalArticle"))
-      f.toSeq.map( r => r.getSubject.toString.split("http://rdf.ncbi.nlm.nih.gov/pubchem/reference/")(1))
-    } catch {
-      case e: IOException =>
-        System.err.println(" ==================== IOException ===================")
-        System.err.println(e.getMessage())
-        Seq()
-      // handle IO problems (e.g. the file could not be read)
-      case e: RDFParseException =>
-        System.err.println(" ==================== RDFParseException ===================")
-        System.err.println(e.getMessage())
-        Seq()
-      // handle unrecoverable parse error
-      case e: RDFHandlerException =>
-        System.err.println(" ==================== RDFHandlerException ===================")
-        System.err.println(e.getMessage())
-        Seq()
-      // handle a problem encountered by the RDFHandler
-    } finally targetStream.close
+    Seq()
   }
 
-  def buildCitoDiscusses(mapPmidCid : Map[String,Seq[String]]) : Model  = {
+  def buildCitoDiscusses(mapPmidCid : Map[String,Seq[String]]) : Unit  = {
 
-    val builder = new ModelBuilder
-
-    // set some namespaces
-    builder
-      .setNamespace("cito", "http://purl.org/spar/cito/")
-      .setNamespace("compound", "http://rdf.ncbi.nlm.nih.gov/pubchem/compound/")
-      .setNamespace("reference", "http://rdf.ncbi.nlm.nih.gov/pubchem/reference/")
-
-    mapPmidCid.foreach {
-      case (pmid,listCid) =>listCid.foreach( cid =>
-        builder.defaultGraph.subject(s"reference:PMID$pmid").add("cito:discusses", s"compound:CID$cid")
-      )}
-    builder.build()
   }
 }

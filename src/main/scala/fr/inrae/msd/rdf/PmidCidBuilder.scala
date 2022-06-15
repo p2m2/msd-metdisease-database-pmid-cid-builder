@@ -1,7 +1,6 @@
 package fr.inrae.msd.rdf
 
 import org.apache.spark.sql.SparkSession
-import org.eclipse.rdf4j.rio.RDFFormat
 
 
 /**
@@ -154,7 +153,7 @@ object PmidCidBuilder {
       rootDir=rootMsdDirectory,
       category=categoryMsd,
       database=databaseMsd,
-      spark=spark).getListFiles(versionMsd,".*_type.*\\.ttl")
+      spark=spark).getListFiles(versionMsd,".*_type_.*\\.ttl")
 
     println("================listReferenceFileNames==============")
     println(listReferenceFileNames)
@@ -175,13 +174,13 @@ object PmidCidBuilder {
     println(s"================pmidCitoDiscussesCid (${pmidCitoDiscussesCid.size})==============")
     println(pmidCitoDiscussesCid.slice(1,100)+"...")
 
-    val turtle = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCid)
+    val turtle : Unit = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCid)
     println(s"================ Write Turtle $rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl ==============")
     MsdUtils(
       rootDir=rootMsdDirectory,
       category=forumCategoryMsd,
       database=forumDatabaseMsd,
-      spark=spark).writeRdf(turtle,RDFFormat.TURTLE,versionMsd,"pmid_cid.ttl")
+      spark=spark).writeRdf("turtle","TURTLE",versionMsd,"pmid_cid.ttl")
 
     spark.close()
   }

@@ -23,13 +23,14 @@ lazy val root = (project in file("."))
       "org.apache.commons" % "commons-configuration2" % "2.7"  % "test,provided",
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.5.1" % "test,provided",
       "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.13.3" % "test,provided",
+      "net.sansa-stack" %% "sansa-rdf-spark" % "0.8.0-RC3",
       "com.lihaoyi" %% "requests" % "0.7.1",
       "com.github.scopt" %% "scopt" % "4.0.1",
-      "org.slf4j" % "slf4j-simple" % slf4j_version,
+    /*  "org.slf4j" % "slf4j-simple" % slf4j_version,
       ("org.eclipse.rdf4j" % "rdf4j-sail" % rdf4jVersion).exclude("commons-codec","commons-codec"),
       ("org.eclipse.rdf4j" % "rdf4j-storage" % rdf4jVersion).exclude("commons-codec","commons-codec"),
       ("org.eclipse.rdf4j" % "rdf4j-client" % rdf4jVersion).exclude("commons-codec","commons-codec"),
-      ("org.eclipse.rdf4j" % "rdf4j-rio" % rdf4jVersion).exclude("commons-codec","commons-codec")
+      ("org.eclipse.rdf4j" % "rdf4j-rio" % rdf4jVersion).exclude("commons-codec","commons-codec")*/
     ),
     resolvers ++= Seq(
       "AKSW Maven Releases" at "https://maven.aksw.org/archiva/repository/internal",
@@ -49,6 +50,10 @@ lazy val root = (project in file("."))
       case "META-INF/io.netty.versions.properties" => MergeStrategy.first
       case "META-INF/versions/9/module-info.class" => MergeStrategy.first
       case "module-info.class"  => MergeStrategy.first
+      case x if x.endsWith("Messages.properties")  => MergeStrategy.first
+      case x if x.endsWith("git.properties")  => MergeStrategy.discard
+      case x if x.endsWith(".ttl")  => MergeStrategy.first
+      case x if x.endsWith(".class")  => MergeStrategy.first
       case x =>
         val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
         oldStrategy(x)
