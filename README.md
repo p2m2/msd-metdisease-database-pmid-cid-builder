@@ -1,10 +1,18 @@
 # msd-metdisease-database-pmid-cid-builder
 
-## command line
+## msd command line
 
 ```
 export JAVA_HOME=/usr/local/openjdk/jdk-12.0.2+10/
-spark-submit --class fr.inrae.msd.rdf.PmidCidBuilder --executor-memory 1G --num-executors 1 msd-metdisease-database-pmid-cid-builder.jar --versionMsd "test"
+export PATH=$JAVA_HOME/bin:$PATH
+
+spark-submit \
+   --class fr.inrae.msd.rdf.PmidCidBuilder \
+   --executor-memory 3G\
+   --conf spark.yarn.appMasterEnv.JAVA_HOME="/usr/local/openjdk/jdk-12.0.2+10/" \
+   --conf spark.executorEnv.JAVA_HOME="/usr/local/openjdk/jdk-12.0.2+10/" \
+   --jars /usr/share/java/sansa-stack-spark_2.12-0.8.4_ExDistAD.jar \
+    msd-metdisease-database-pmid-cid-builder.jar
 ```
 
 ### Info
