@@ -47,7 +47,8 @@ lazy val root = (project in file("."))
       "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository",
       "Apache Staging" at "https://repository.apache.org/content/repositories/staging/"
     ),
-    assembly / assemblyJarName := s"msd-metdisease-database-pmid-cid-builder.jar",
+    assembly / target := file("assembly"),
+      assembly / assemblyJarName := s"msd-metdisease-database-pmid-cid-builder.jar",
     assembly / logLevel := Level.Info,
     assembly / assemblyMergeStrategy := {
      //case PathList("META-INF", xs @ _*) => MergeStrategy.last

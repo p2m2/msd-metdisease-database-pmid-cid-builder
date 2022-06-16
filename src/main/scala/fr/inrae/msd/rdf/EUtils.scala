@@ -19,7 +19,7 @@ case object EUtils {
     println("*********************************elink**************************")
     uid_list
       //.slice(1,20)
-      .map(_.toLowerCase.replace("pmid","").trim)
+      .map(_.toLowerCase.split("pmid")(1).trim)
       .grouped(packSize)
       .flatMap(
       uid_list_sub => {

@@ -95,6 +95,11 @@ object PmidCidBuilder {
     .builder()
     .appName("msd-metdisease-database-pmid-cid-builder")
     .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+    .config("spark.kryo.registrator", String.join(
+      ", ",
+      "net.sansa_stack.rdf.spark.io.JenaKryoRegistrator",
+      "net.sansa_stack.query.spark.ontop.OntopKryoRegistrator",
+      "net.sansa_stack.query.spark.sparqlify.KryoRegistratorSparqlify"))
     .getOrCreate()
 
   def main(args: Array[String]): Unit = {
