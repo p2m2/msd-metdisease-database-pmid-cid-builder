@@ -159,7 +159,7 @@ object PmidCidBuilder {
       rootDir=rootMsdDirectory,
       category=categoryMsd,
       database=databaseMsd,
-      spark=spark).getListFiles(versionMsd,".*_type_.*\\.ttl")
+      spark=spark).getListFiles(versionMsd,".*_type.*\\.ttl")
 
     println("================listReferenceFileNames==============")
     println(listReferenceFileNames)
