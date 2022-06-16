@@ -94,6 +94,7 @@ object PmidCidBuilder {
   val spark = SparkSession
     .builder()
     .appName("msd-metdisease-database-pmid-cid-builder")
+    .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
     .getOrCreate()
 
   def main(args: Array[String]): Unit = {

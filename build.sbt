@@ -23,10 +23,10 @@ lazy val root = (project in file("."))
       "org.apache.commons" % "commons-configuration2" % "2.7"  % "test,provided",
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.5.1" % "test,provided",
       "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.13.3" % "test,provided",
-      "net.sansa-stack" %% "sansa-rdf-spark" % "0.8.0-RC3",
+      "net.sansa-stack" %% "sansa-rdf-spark" % "0.8.0-RC3" % "test,provided",
       ("net.sansa-stack" %% "sansa-ml-spark" % "0.8.0-RC3")
         .exclude("org.apache.zookeeper","zookeeper")
-        .exclude("org.apache.hadoop","hadoop-common")
+        .exclude("org.apache.hadoop","hadoop-common") % "test,provided"
       ,
       "com.lihaoyi" %% "requests" % "0.7.1",
       "com.github.scopt" %% "scopt" % "4.0.1",
