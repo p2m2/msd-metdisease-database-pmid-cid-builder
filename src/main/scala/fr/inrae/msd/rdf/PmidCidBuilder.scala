@@ -2,8 +2,9 @@ package fr.inrae.msd.rdf
 
 import org.apache.jena.rdf.model.Model
 import org.apache.jena.riot.Lang
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
-
+import org.apache.jena.graph.Triple
 
 /**
  * https://services.pfem.clermont.inrae.fr/gitlab/forum/metdiseasedatabase/-/blob/develop/app/build/import_PMID_CID.py
@@ -54,7 +55,7 @@ object PmidCidBuilder {
         .optional()
         .action({ case (r, c) => c.copy(implGetPMID = r) })
         .validate(x =>
-          if ((x > 0) && (x <=2)) success
+          if ((x >= 0) && (x <=2)) success
           else failure("Value <implementation> must be >0"))
         .valueName("<implGetPMID>")
         .text("implementation to get PMID subject from reference - 0 : Dataset[Triple], 1 : [RDD[Binding], 2 : Triples.getSubject."),
@@ -161,7 +162,7 @@ object PmidCidBuilder {
       rootDir=rootMsdDirectory,
       category=categoryMsd,
       database=databaseMsd,
-      spark=spark).getListFiles(versionMsd,".*_type.*\\.ttl")
+      spark=spark).getListFiles(versionMsd,".*_type_test2.*\\.ttl")
 
     println("================listReferenceFileNames==============")
     println(listReferenceFileNames)
@@ -172,38 +173,44 @@ object PmidCidBuilder {
       System.exit(0)
     }
 
-    val pmids = listReferenceFileNames.flatMap(
+    val pmids : RDD[String] = spark.sparkContext.union(listReferenceFileNames.map(
       referenceFileName => implGetPMID match {
         case 1 => PmidCidWork.getPMIDListFromReference_impl2(spark,referenceFileName)
         case 2 => PmidCidWork.getPMIDListFromReference_impl3(spark,referenceFileName)
         case _ => PmidCidWork.getPMIDListFromReference_impl1(spark,referenceFileName)
-      })
+      }))
+      val numberOfPmid = pmids.count()
 
-    println(s"================PMID List (${pmids.length})==============")
-    println(pmids.slice(1,10)+"...")
+    /* repartition to optimize elink http request */
+    val pmidsRep = pmids.repartition(numPartitions = (numberOfPmid / packSize).toInt + 1) /* repartition to call elink process */
 
-    val pmidCitoDiscussesCid = EUtils.elink(apikey=apiKey,packSize=packSize,dbFrom="pubmed", db="pccompound",pmids)
-    println(s"================pmidCitoDiscussesCid (${pmidCitoDiscussesCid.size})==============")
-    println(pmidCitoDiscussesCid.slice(1,10)+"...")
+    println(s"================PMID List ($numberOfPmid)==============")
+    println(pmids.take(10).slice(1,10)+"...")
+
+    val pmidCitoDiscussesCid = EUtils.elink(apikey=apiKey,dbFrom="pubmed", db="pccompound",pmidsRep)
+    println(s"================pmidCitoDiscussesCid (${pmidCitoDiscussesCid.count()})==============")
+    println(pmidCitoDiscussesCid.take(10).slice(1,10)+"...")
 
     println(" ========== save pmid list without success elink request ========")
-    val lProblemPmid = pmids diff pmidCitoDiscussesCid.keys.toSeq
-    println(" pmid problem:" + lProblemPmid.length)
-    println(s"================ Write Turtle $rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/error_with_pmid ==============")
-
+    //val lProblemPmid = pmids diff pmidCitoDiscussesCid.keys.toSeq
+    //println(" pmid problem:" + lProblemPmid.length)
+    //println(s"================ Write Turtle $rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/error_with_pmid ==============")
+/*
     MsdUtils(
       rootDir=rootMsdDirectory,
       category=forumCategoryMsd,
       database=forumDatabaseMsd,
-      spark=spark).writeDataframeAsTxt(spark,lProblemPmid,versionMsd,"error_with_pmid")
-    val model : Model = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCid)
+      spark=spark).writeDataframeAsTxt(spark,lProblemPmid,versionMsd,"error_with_pmid")*/
+    val triples_asso_pmid_cid : RDD[Triple] = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCid)
     println(s"================ Write Turtle $rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl ==============")
-    MsdUtils(
+   /* MsdUtils(
       rootDir=rootMsdDirectory,
       category=forumCategoryMsd,
       database=forumDatabaseMsd,
       spark=spark).writeRdf(model,Lang.TURTLE,versionMsd,"pmid_cid.ttl")
-
+*/
+    import net.sansa_stack.rdf.spark.io._
+    triples_asso_pmid_cid.saveAsNTriplesFile(s"$rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl") //.take(5))
     spark.close()
   }
 

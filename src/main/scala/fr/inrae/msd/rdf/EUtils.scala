@@ -1,5 +1,8 @@
 package fr.inrae.msd.rdf
 
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.Row
+
 import scala.language.postfixOps
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
@@ -13,6 +16,7 @@ case object EUtils {
               db: String,
               uid_list_sub: Seq[String]
              ): Seq[(String, Seq[String])] = {
+
     val p = requests.post(
       base + s"elink.fcgi",
       params = Seq(
@@ -20,6 +24,7 @@ case object EUtils {
         "dbfrom" -> dbFrom,
         "db" -> db) ++ uid_list_sub.map("id" -> _)
     )
+
     val xml = scala.xml.XML.loadString(p.text)
     xml \\ "LinkSet" map { linkSet =>
       (linkSet \\ "IdList" \\ "Id").text -> (linkSet \\ "LinkSetDb" \\ "Link" \\ "Id" map { id => id.text })
@@ -29,11 +34,11 @@ case object EUtils {
   // Returning a Try[T] wrapper
   // Returning T, throwing the exception on failure
   @annotation.tailrec
-  def retry[T](n: Int)(fn: => T): Option[T] = {
+  def retry[T](n: Int)(fn: => T): T = {
     Try { fn } match {
-      case Success(x) => Some(x)
+      case Success(x) => x
       case _ if n > 0 => println(s"***RETRY $n") ; Thread.sleep(durationRetry); retry(n - 1)(fn)
-      case _ => None
+      case Failure(e) => println(e.getMessage()) ; throw new Exception("stop")
     }
   }
 
@@ -43,24 +48,22 @@ case object EUtils {
 
   def elink(
              apikey:String,
-             packSize : Int =20,
              dbFrom : String,
              db : String,
-             uid_list : Seq[String]) : Map[String,Seq[String]] = {
+             uid_list : RDD[String]) : RDD[(String,Seq[String])] = {
 
     println("*********************************elink**************************")
       uid_list
-      //.slice(1,20)
-      .map(_.toLowerCase.split("pmid")(1).trim)
-      .grouped(packSize)
-      .flatMap(
-      uid_list_sub => {
-        println("*********************************REQUEST**************************")
-        Try(retry(3)(request(apikey,dbFrom,db,uid_list_sub))) match {
-          case Success(l) => l
-          case Failure(_) => None
-        }
-        }).toSeq.flatten
-  }.toMap
+        .map(_.toLowerCase.split("pmid")(1).trim)
+        .glom()
+        .flatMap(listPmids => {
+          println("*********************************REQUEST**************************")
+          println(listPmids.mkString("*"))
+          println("*************************")
+          val r :Seq[(String, Seq[String])] = retry(3)(request(apikey,dbFrom,db,Seq()))
+          r
+        })
+
+  }
 
 }
