@@ -6,25 +6,25 @@ import net.sansa_stack.query.spark.api.domain.ResultSetSpark
 import net.sansa_stack.query.spark.sparqlify.QueryEngineFactorySparqlify
 import net.sansa_stack.rdf.spark.io.RDFReader
 import net.sansa_stack.rdf.spark.model.TripleOperations
-import org.apache.jena.query.ResultSetFormatter
+
 import org.apache.jena.rdf.model.{Model, ModelFactory}
 import org.apache.jena.riot.Lang
 import org.apache.jena.sparql.core.Var
 import org.apache.jena.sparql.engine.binding.Binding
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{Dataset, SparkSession}
 
 case object PmidCidWork {
+  val queryString = "select * where { " +
+    "?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalArticle> . }"
 
   def getPMIDListFromReference(spark : SparkSession,referencePath: String): Seq[String] =
-    getPMIDListFromReference_impl1(spark,referencePath)
+    getPMIDListFromReference_impl2(spark,referencePath)
 
   def getPMIDListFromReference_impl1(spark : SparkSession,referencePath: String): Seq[String] = {
-
+    println(" IMPL1 ********************** Dataset[org.apache.jena.graph.Triple] **********************")
     val triples = spark.rdf(Lang.TURTLE)(referencePath)
-    val triplesDataset = triples.toDS()
-    val queryString = "select * where { " +
-      "?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalArticle> . }"
+    val triplesDataset : Dataset[org.apache.jena.graph.Triple] = triples.toDS()
 
     val sparqlFrame =
       new SparqlFrame()
@@ -42,11 +42,8 @@ case object PmidCidWork {
    // val str : String = spark.read.text(referencePath).collect().map(row => row.mkString("")).mkString("\n")
   }
 
-  def getPMIDListFromReference_impl2(spark : SparkSession,referencePath: String): Unit = {
-
-    val queryString = "select * where { " +
-      "?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalArticle> . }"
-
+  def getPMIDListFromReference_impl2(spark : SparkSession,referencePath: String): Seq[String] = {
+    println(" IMPL2 ********************** RDD[BINDING] **********************")
     val triples = spark.rdf(Lang.TURTLE)(referencePath)
     val queryEngineFactory = new QueryEngineFactorySparqlify(spark)
     val qef1 = queryEngineFactory.create(triples)
@@ -56,11 +53,13 @@ case object PmidCidWork {
     val resultBindings: RDD[Binding] = result.getBindings // the bindings, i.e. mappings from vars to RDF resources
     val resultVars: Seq[Var] = result.getResultVars
 
-    println("=================================saveMethod=============================")
-    ResultSetFormatter.asText(rs)
-    println(resultBindings.collect())
-    println(resultVars)
-    println("=================================END=============================")
+    resultBindings.collect().map( (resb : Binding) => resb.get("s").getURI).toSeq
+  }
+
+  def getPMIDListFromReference_impl3(spark : SparkSession,referencePath: String): Seq[String] = {
+    println(" IMPL3 ********************** triples.getSubjects **********************")
+    val triples = spark.rdf(Lang.TURTLE)(referencePath)
+    triples.getSubjects.collect().map(_.toString)
   }
 
   def buildCitoDiscusses(mapPmidCid : Map[String,Seq[String]]) : Model  = {
