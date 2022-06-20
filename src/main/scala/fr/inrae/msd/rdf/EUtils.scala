@@ -16,6 +16,9 @@ case object EUtils {
               db: String,
               uid_list_sub: Seq[String]
              ): Seq[(String, Seq[String])] = {
+    println("jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj")
+    println(uid_list_sub.mkString(","))
+    println("jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj")
 
     val p = requests.post(
       base + s"elink.fcgi",
@@ -24,7 +27,6 @@ case object EUtils {
         "dbfrom" -> dbFrom,
         "db" -> db) ++ uid_list_sub.map("id" -> _)
     )
-
     val xml = scala.xml.XML.loadString(p.text)
     println(xml.toString())
     xml \\ "LinkSet" map { linkSet =>
@@ -37,8 +39,13 @@ case object EUtils {
   @annotation.tailrec
   def retry[T](n: Int)(fn: => T): T = {
     Try { fn } match {
-      case Success(x) => x
-      case _ if n > 0 => println(s"***RETRY $n") ; Thread.sleep(durationRetry); retry(n - 1)(fn)
+      case Success(x) => println("OKKK");x
+      case Failure(e) if n > 0 => {
+        println(e.getMessage())
+        println(s"***RETRY $n")
+        Thread.sleep(durationRetry)
+        retry(n - 1)(fn)
+      }
       case Failure(e) => println(e.getMessage()) ; throw new Exception("stop")
     }
   }
@@ -61,7 +68,7 @@ case object EUtils {
           println("*********************************REQUEST**************************")
           println(listPmids.mkString("*"))
           println("*************************")
-          val r :Seq[(String, Seq[String])] = retry(3)(request(apikey,dbFrom,db,Seq()))
+          val r :Seq[(String, Seq[String])] = retry(3)(request(apikey,dbFrom,db,listPmids))
           r
         })
 

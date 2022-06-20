@@ -189,7 +189,7 @@ object PmidCidBuilder {
 
     val pmidCitoDiscussesCid = EUtils.elink(apikey=apiKey,dbFrom="pubmed", db="pccompound",pmidsRep)
     println(s"================pmidCitoDiscussesCid (${pmidCitoDiscussesCid.count()})==============")
-    println(pmidCitoDiscussesCid.take(10).mkString(",")+"...")
+//    println(pmidCitoDiscussesCid.take(10).mkString(",")+"...")
 
     println(" ========== save pmid list without success elink request ========")
     //val lProblemPmid = pmids diff pmidCitoDiscussesCid.keys.toSeq
@@ -202,7 +202,7 @@ object PmidCidBuilder {
       database=forumDatabaseMsd,
       spark=spark).writeDataframeAsTxt(spark,lProblemPmid,versionMsd,"error_with_pmid")*/
     val triples_asso_pmid_cid : RDD[Triple] = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCid)
-    println(s"================ Write Turtle $rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl ==============")
+   // println(s"================ Write Turtle $rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl ==============")
    /* MsdUtils(
       rootDir=rootMsdDirectory,
       category=forumCategoryMsd,
