@@ -42,7 +42,21 @@ case class MsdUtils(rootDir : String = "/rdf", category : String, database : Str
     val out : FSDataOutputStream = FileSystem.create(fs,path,FileContext.DEFAULT_PERM)
     try RDFDataMgr.write(out, model, format)
     finally out.close
-
   }
 
+  def writeDataframeAsTxt(spark: SparkSession , contain:Seq[String], version : String, outputPathFile : String) = {
+    import spark.implicits._
+
+    val outDir : String = basedir+"/"+version
+
+    if (! fs.exists(new Path(outDir))) {
+      fs.mkdirs(new Path(outDir))
+    }
+
+    contain
+      .toDF()
+      .write
+      .mode("overwrite")
+      .text(s"$outDir/$outputPathFile")
+  }
 }

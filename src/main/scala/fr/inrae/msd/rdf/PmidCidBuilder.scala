@@ -186,6 +186,16 @@ object PmidCidBuilder {
     println(s"================pmidCitoDiscussesCid (${pmidCitoDiscussesCid.size})==============")
     println(pmidCitoDiscussesCid.slice(1,10)+"...")
 
+    println(" ========== save pmid list without success elink request ========")
+    val lProblemPmid = pmids diff pmidCitoDiscussesCid.keys.toSeq
+    println(" pmid problem:" + lProblemPmid.length)
+    println(s"================ Write Turtle $rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/error_with_pmid ==============")
+
+    MsdUtils(
+      rootDir=rootMsdDirectory,
+      category=forumCategoryMsd,
+      database=forumDatabaseMsd,
+      spark=spark).writeDataframeAsTxt(spark,lProblemPmid,versionMsd,"error_with_pmid")
     val model : Model = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCid)
     println(s"================ Write Turtle $rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl ==============")
     MsdUtils(
