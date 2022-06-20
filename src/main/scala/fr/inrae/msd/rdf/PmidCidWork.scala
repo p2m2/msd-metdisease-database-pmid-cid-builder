@@ -18,11 +18,10 @@ case object PmidCidWork {
   val queryString = "select * where { " +
     "?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalArticle> . }"
 
-  def getPMIDListFromReference(spark : SparkSession,referencePath: String): Seq[String] =
-    getPMIDListFromReference_impl2(spark,referencePath)
-
   def getPMIDListFromReference_impl1(spark : SparkSession,referencePath: String): Seq[String] = {
+    println(" ********************** \n\n")
     println(" IMPL1 ********************** Dataset[org.apache.jena.graph.Triple] **********************")
+    println("\n\n **********************")
     val triples = spark.rdf(Lang.TURTLE)(referencePath)
     val triplesDataset : Dataset[org.apache.jena.graph.Triple] = triples.toDS()
 
@@ -31,19 +30,15 @@ case object PmidCidWork {
       .setSparqlQuery(queryString)
       .setQueryExcecutionEngine(SPARQLEngine.Sparqlify)
 
-    println("==================  START ========================")
-    val res = sparqlFrame.transform(triplesDataset).collect().map(
+    sparqlFrame.transform(triplesDataset).collect().map(
       row => row.get(0).toString
     ).toSeq
-    println(res.mkString(","))
-    println("==================  END ========================")
-    res
-    // res.map(row => row.toString())
-   // val str : String = spark.read.text(referencePath).collect().map(row => row.mkString("")).mkString("\n")
   }
 
   def getPMIDListFromReference_impl2(spark : SparkSession,referencePath: String): Seq[String] = {
+    println(" ********************** \n\n")
     println(" IMPL2 ********************** RDD[BINDING] **********************")
+    println("\n\n **********************")
     val triples = spark.rdf(Lang.TURTLE)(referencePath)
     val queryEngineFactory = new QueryEngineFactorySparqlify(spark)
     val qef1 = queryEngineFactory.create(triples)
@@ -57,7 +52,9 @@ case object PmidCidWork {
   }
 
   def getPMIDListFromReference_impl3(spark : SparkSession,referencePath: String): Seq[String] = {
+    println(" ********************** \n\n")
     println(" IMPL3 ********************** triples.getSubjects **********************")
+    println("\n\n **********************")
     val triples = spark.rdf(Lang.TURTLE)(referencePath)
     triples.getSubjects.collect().map(_.toString)
   }

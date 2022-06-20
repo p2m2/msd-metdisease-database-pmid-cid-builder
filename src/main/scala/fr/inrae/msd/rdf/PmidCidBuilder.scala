@@ -26,7 +26,7 @@ object PmidCidBuilder {
                      pubchemCategoryMsd : String = "pubchem", //"/rdf/pubchem/compound-general/2021-11-23",
                      pubchemDatabaseMsd : String = "reference", // "/rdf/pubchem/reference/2021-11-23",
                      pubchemVersionMsd: Option[String] = None,
-                     maxTriplesByFiles: Int = 5000000,
+                     implGetPMID: Int = 0, /* 0 : Dataset[Triple], 1 : [RDD[Binding], 2 : Triples.getSubject */
                      referenceUriPrefix: String = "http://rdf.ncbi.nlm.nih.gov/pubchem/reference/PMID",
                      packSize : Int = 300,
                      apiKey : Option[String] = Some("30bc501ba6ab4cba2feedffb726cbe825c0a"),
@@ -50,14 +50,14 @@ object PmidCidBuilder {
         .valueName("<versionMsd>")
         .action((x, c) => c.copy(pubchemVersionMsd = Some(x)))
         .text("versionMsd : release of reference/pubchem database"),
-      opt[Int]("maxTriplesByFiles")
+      opt[Int]('i',"implGetPMID")
         .optional()
-        .action({ case (r, c) => c.copy(maxTriplesByFiles = r) })
+        .action({ case (r, c) => c.copy(implGetPMID = r) })
         .validate(x =>
-          if (x > 0) success
-          else failure("Value <maxTriplesByFiles> must be >0"))
-        .valueName("<maxTriplesByFiles>")
-        .text("maxTriplesByFiles to write pmid/cid turtle files."),
+          if ((x > 0) && (x <=2)) success
+          else failure("Value <implementation> must be >0"))
+        .valueName("<implGetPMID>")
+        .text("implementation to get PMID subject from reference - 0 : Dataset[Triple], 1 : [RDD[Binding], 2 : Triples.getSubject."),
       opt[Int]("packSize")
         .optional()
         .action({ case (r, c) => c.copy(packSize = r) })
@@ -124,7 +124,7 @@ object PmidCidBuilder {
               category=config.pubchemCategoryMsd,
               database=config.pubchemDatabaseMsd,spark=spark).getLastVersion()
           },
-          config.maxTriplesByFiles,
+          config.implGetPMID,
           config.referenceUriPrefix,
           config.packSize,
           config.apiKey match {
@@ -147,7 +147,7 @@ object PmidCidBuilder {
              categoryMsd : String,
              databaseMsd : String,
              versionMsd: String,
-             maxTriplesByFiles: Int,
+             implGetPMID: Int,
              referenceUriPrefix: String,
              packSize : Int,
              apiKey : String,
@@ -173,14 +173,18 @@ object PmidCidBuilder {
     }
 
     val pmids = listReferenceFileNames.flatMap(
-      referenceFileName => PmidCidWork
-      .getPMIDListFromReference(spark,referenceFileName))
+      referenceFileName => implGetPMID match {
+        case 1 => PmidCidWork.getPMIDListFromReference_impl2(spark,referenceFileName)
+        case 2 => PmidCidWork.getPMIDListFromReference_impl3(spark,referenceFileName)
+        case _ => PmidCidWork.getPMIDListFromReference_impl1(spark,referenceFileName)
+      })
+
     println(s"================PMID List (${pmids.length})==============")
-    println(pmids.slice(1,100)+"...")
+    println(pmids.slice(1,10)+"...")
 
     val pmidCitoDiscussesCid = EUtils.elink(apikey=apiKey,packSize=packSize,dbFrom="pubmed", db="pccompound",pmids)
     println(s"================pmidCitoDiscussesCid (${pmidCitoDiscussesCid.size})==============")
-    println(pmidCitoDiscussesCid.slice(1,100)+"...")
+    println(pmidCitoDiscussesCid.slice(1,10)+"...")
 
     val model : Model = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCid)
     println(s"================ Write Turtle $rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl ==============")
