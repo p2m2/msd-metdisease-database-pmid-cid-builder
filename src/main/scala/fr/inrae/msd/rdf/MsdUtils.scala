@@ -1,7 +1,10 @@
 package fr.inrae.msd.rdf
 
-import org.apache.hadoop.fs.{FileStatus, Path}
+import org.apache.hadoop.fs.{FSDataOutputStream, FileContext, FileStatus, FileSystem, Path}
 import org.apache.spark.sql.SparkSession
+import org.apache.jena.rdf.model.Model
+import org.apache.jena.riot.Lang
+import org.apache.jena.riot.RDFDataMgr
 
 case class MsdUtils(rootDir : String = "/rdf", category : String, database : String,spark : SparkSession) {
   val basedir= s"$rootDir/$category/$database/"
@@ -28,7 +31,17 @@ case class MsdUtils(rootDir : String = "/rdf", category : String, database : Str
 
   def getPath(version : String ) = s"$basedir/$version"
 
-  def writeRdf(model:String,format : String, version : String, outputPathFile : String): Unit = {
+  def writeRdf(model:Model, format : Lang, version : String, outputPathFile : String): Unit = {
+    val outDir : String = basedir+"/"+version
+
+    if (! fs.exists(new Path(outDir))) {
+      fs.mkdirs(new Path(outDir))
+    }
+
+    val path = new Path(s"$outDir/$outputPathFile")
+    val out : FSDataOutputStream = FileSystem.create(fs,path,FileContext.DEFAULT_PERM)
+    try RDFDataMgr.write(out, model, format)
+    finally out.close
 
   }
 

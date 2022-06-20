@@ -1,5 +1,7 @@
 package fr.inrae.msd.rdf
 
+import org.apache.jena.rdf.model.Model
+import org.apache.jena.riot.Lang
 import org.apache.spark.sql.SparkSession
 
 
@@ -180,13 +182,13 @@ object PmidCidBuilder {
     println(s"================pmidCitoDiscussesCid (${pmidCitoDiscussesCid.size})==============")
     println(pmidCitoDiscussesCid.slice(1,100)+"...")
 
-    val turtle : Unit = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCid)
+    val model : Model = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCid)
     println(s"================ Write Turtle $rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl ==============")
     MsdUtils(
       rootDir=rootMsdDirectory,
       category=forumCategoryMsd,
       database=forumDatabaseMsd,
-      spark=spark).writeRdf("turtle","TURTLE",versionMsd,"pmid_cid.ttl")
+      spark=spark).writeRdf(model,Lang.TURTLE,versionMsd,"pmid_cid.ttl")
 
     spark.close()
   }
