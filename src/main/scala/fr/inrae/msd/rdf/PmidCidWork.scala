@@ -74,7 +74,7 @@ case object PmidCidWork {
       .setNsPrefix("compound", "http://rdf.ncbi.nlm.nih.gov/pubchem/compound/")
       .setNsPrefix("reference", "http://rdf.ncbi.nlm.nih.gov/pubchem/reference/")
     mapPmidCid.take(5).foreach( println )
-    println("==================================")
+
     mapPmidCid.map {
           case (pmid : String,listCid : Seq[String]) =>listCid.map ( cid => {
 

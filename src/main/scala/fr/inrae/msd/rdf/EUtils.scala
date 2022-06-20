@@ -26,6 +26,7 @@ case object EUtils {
     )
 
     val xml = scala.xml.XML.loadString(p.text)
+    println(xml.toString())
     xml \\ "LinkSet" map { linkSet =>
       (linkSet \\ "IdList" \\ "Id").text -> (linkSet \\ "LinkSetDb" \\ "Link" \\ "Id" map { id => id.text })
     }

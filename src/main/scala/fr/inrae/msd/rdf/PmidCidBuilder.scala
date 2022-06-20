@@ -189,7 +189,7 @@ object PmidCidBuilder {
 
     val pmidCitoDiscussesCid = EUtils.elink(apikey=apiKey,dbFrom="pubmed", db="pccompound",pmidsRep)
     println(s"================pmidCitoDiscussesCid (${pmidCitoDiscussesCid.count()})==============")
-    println(pmidCitoDiscussesCid.take(10).slice(1,10)+"...")
+    println(pmidCitoDiscussesCid.take(10).mkString(",")+"...")
 
     println(" ========== save pmid list without success elink request ========")
     //val lProblemPmid = pmids diff pmidCitoDiscussesCid.keys.toSeq
