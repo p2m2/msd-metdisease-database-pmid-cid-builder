@@ -13,7 +13,7 @@ import org.apache.jena.sparql.engine.binding.Binding
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Dataset, Encoder, Encoders, Row, SparkSession}
 import org.apache.jena.graph.Triple
-
+import org.apache.jena.graph.NodeFactory
 
 case object PmidCidWork {
   val queryString = "select * where { " +
@@ -69,20 +69,20 @@ case object PmidCidWork {
 
   def buildCitoDiscusses(mapPmidCid : RDD[(String,Seq[String])]) : RDD[Triple]  = {
     // create an empty model
+    /*
     val model : Model = ModelFactory.createDefaultModel()
     model.setNsPrefix("cito", "http://purl.org/spar/cito/")
       .setNsPrefix("compound", "http://rdf.ncbi.nlm.nih.gov/pubchem/compound/")
-      .setNsPrefix("reference", "http://rdf.ncbi.nlm.nih.gov/pubchem/reference/")
-    mapPmidCid.take(5).foreach( println )
+      .setNsPrefix("reference", "http://rdf.ncbi.nlm.nih.gov/pubchem/reference/")*/
+    //mapPmidCid.take(5).foreach( println )
 
     mapPmidCid.map {
           case (pmid : String,listCid : Seq[String]) =>listCid.map ( cid => {
 
-
             Triple.create(
-              model.createResource(s"http://rdf.ncbi.nlm.nih.gov/pubchem/reference/PMID$pmid").asNode(),
-              model.createProperty("http://purl.org/spar/cito/discusses").asNode(),
-              model.createResource(s"http://rdf.ncbi.nlm.nih.gov/pubchem/compound/CID$cid").asNode()
+              NodeFactory.createURI(s"http://rdf.ncbi.nlm.nih.gov/pubchem/reference/PMID$pmid"),
+              NodeFactory.createURI("http://purl.org/spar/cito/discusses"),
+              NodeFactory.createURI(s"http://rdf.ncbi.nlm.nih.gov/pubchem/compound/CID$cid")
             )
           })
      }.flatMap(

@@ -154,7 +154,7 @@ object PmidCidBuilder {
              apiKey : String,
              timeout : Int,
              verbose: Boolean,
-             debug: Boolean) {
+             debug: Boolean) : Unit = {
     println("============== Main Build ====================")
     println(s"categoryMsd=$categoryMsd,databaseMsd=$databaseMsd,versionMsd=$versionMsd")
     println("==============  getPMIDListFromReference ====================")
@@ -162,7 +162,7 @@ object PmidCidBuilder {
       rootDir=rootMsdDirectory,
       category=categoryMsd,
       database=databaseMsd,
-      spark=spark).getListFiles(versionMsd,".*_type_test2.*\\.ttl")
+      spark=spark).getListFiles(versionMsd,".*_type.*2\\.ttl")
 
     println("================listReferenceFileNames==============")
     println(listReferenceFileNames)
@@ -210,7 +210,7 @@ object PmidCidBuilder {
       spark=spark).writeRdf(model,Lang.TURTLE,versionMsd,"pmid_cid.ttl")
 */
     import net.sansa_stack.rdf.spark.io._
-    triples_asso_pmid_cid.saveAsNTriplesFile(s"$rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl") //.take(5))
+    triples_asso_pmid_cid.saveAsNTriplesFile(s"$rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl",mode=SaveMode.Overwrite) //.take(5))
     spark.close()
   }
 
