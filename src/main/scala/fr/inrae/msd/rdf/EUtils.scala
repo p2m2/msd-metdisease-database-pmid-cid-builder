@@ -1,10 +1,8 @@
 package fr.inrae.msd.rdf
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.Row
 
 import scala.language.postfixOps
-import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 case object EUtils {
@@ -16,9 +14,6 @@ case object EUtils {
               db: String,
               uid_list_sub: Seq[String]
              ): Seq[(String, Seq[String])] = {
-    println("jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj")
-    println(uid_list_sub.mkString(","))
-    println("jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj")
 
     val p = requests.post(
       base + s"elink.fcgi",
@@ -28,7 +23,6 @@ case object EUtils {
         "db" -> db) ++ uid_list_sub.map("id" -> _)
     )
     val xml = scala.xml.XML.loadString(p.text)
-    println(xml.toString())
     xml \\ "LinkSet" map { linkSet =>
       (linkSet \\ "IdList" \\ "Id").text -> (linkSet \\ "LinkSetDb" \\ "Link" \\ "Id" map { id => id.text })
     }
@@ -39,7 +33,7 @@ case object EUtils {
   @annotation.tailrec
   def retry[T](n: Int)(fn: => T): T = {
     Try { fn } match {
-      case Success(x) => println("OKKK");x
+      case Success(x) => x
       case Failure(e) if n > 0 => {
         println(e.getMessage())
         println(s"***RETRY $n")

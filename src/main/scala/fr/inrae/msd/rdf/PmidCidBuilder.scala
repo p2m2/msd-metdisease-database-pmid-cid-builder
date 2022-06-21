@@ -1,10 +1,8 @@
 package fr.inrae.msd.rdf
 
-import org.apache.jena.rdf.model.Model
-import org.apache.jena.riot.Lang
+import org.apache.jena.graph.Triple
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
-import org.apache.jena.graph.Triple
 
 /**
  * https://services.pfem.clermont.inrae.fr/gitlab/forum/metdiseasedatabase/-/blob/develop/app/build/import_PMID_CID.py
@@ -162,7 +160,7 @@ object PmidCidBuilder {
       rootDir=rootMsdDirectory,
       category=categoryMsd,
       database=databaseMsd,
-      spark=spark).getListFiles(versionMsd,".*_type.*2\\.ttl")
+      spark=spark).getListFiles(versionMsd,".*_type.*\\.ttl")
 
     println("================listReferenceFileNames==============")
     println(listReferenceFileNames)
@@ -187,8 +185,9 @@ object PmidCidBuilder {
     println(s"================PMID List ($numberOfPmid)==============")
     println(pmids.take(10).slice(1,10)+"...")
 
-    val pmidCitoDiscussesCid = EUtils.elink(apikey=apiKey,dbFrom="pubmed", db="pccompound",pmidsRep)
-    println(s"================pmidCitoDiscussesCid (${pmidCitoDiscussesCid.count()})==============")
+    val pmidCitoDiscussesCid : RDD[(String,Seq[String])] = EUtils.elink(apikey=apiKey,dbFrom="pubmed", db="pccompound",pmidsRep)
+    println(s"================pmidCitoDiscussesCid (${pmidCitoDiscussesCid.count()})==PARTITION SIZE=${pmidCitoDiscussesCid.partitions.size}============")
+
 //    println(pmidCitoDiscussesCid.take(10).mkString(",")+"...")
 
     println(" ========== save pmid list without success elink request ========")
