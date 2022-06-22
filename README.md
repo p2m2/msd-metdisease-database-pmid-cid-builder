@@ -3,14 +3,11 @@
 ## msd command line
 
 ```
-export JAVA_HOME=/usr/local/openjdk/jdk-12.0.2+10/
-export PATH=$JAVA_HOME/bin:$PATH
-
 spark-submit \
    --deploy-mode cluster \
    --class fr.inrae.msd.rdf.PmidCidBuilder \
-   --executor-memory 3G \
-   --num-executors 50 \
+   --executor-memory 1G \
+   --num-executors 10 \
    --conf spark.yarn.appMasterEnv.JAVA_HOME="/usr/local/openjdk/jdk-12.0.2+10/" \
    --conf spark.executorEnv.JAVA_HOME="/usr/local/openjdk/jdk-12.0.2+10/" \
    --jars /usr/share/java/sansa-stack-spark_2.12-0.8.4_ExDistAD.jar \

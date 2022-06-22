@@ -7,7 +7,8 @@ import scala.util.{Failure, Success, Try}
 
 case object EUtils {
   val base          :String = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
-  val durationRetry : Int   = 3000 /* milliseconds */
+  val durationRetry : Int   = 10000 /* milliseconds */
+  val retryNum      : Int   = 10
 
   def request(apikey: String,
               dbFrom: String,
@@ -16,11 +17,13 @@ case object EUtils {
              ): Seq[(String, Seq[String])] = {
 
     val p = requests.post(
+
       base + s"elink.fcgi",
-      params = Seq(
+      compress = requests.Compress.None,
+      data = (Seq(
         "api_key" -> apikey,
         "dbfrom" -> dbFrom,
-        "db" -> db) ++ uid_list_sub.map("id" -> _)
+        "db" -> db) ++ uid_list_sub.map("id" -> _)).toMap
     )
     val xml = scala.xml.XML.loadString(p.text)
     xml \\ "LinkSet" map { linkSet =>
@@ -46,26 +49,33 @@ case object EUtils {
 
   /**
    * Finding Related Data Through Entrez Links
+   *
+   * get PMID -> Some(List(CID)) or None
    */
 
   def elink(
              apikey:String,
              dbFrom : String,
              db : String,
-             uid_list : RDD[String]) : RDD[(String,Seq[String])] = {
+             uid_list : RDD[String]) : RDD[(String,Option[Seq[String]])] = {
 
     println("*********************************elink**************************")
-      uid_list
-        .map(_.toLowerCase.split("pmid")(1).trim)
+     val g= uid_list
+         .map(_.toLowerCase.split("pmid")(1).trim)
         .glom()
+    println(s"COUNT GLOM=${g.count()}")
+       g
         .flatMap(listPmids => {
           println("*********************************REQUEST**************************")
-          println(listPmids.mkString("*"))
+          println(listPmids.length)
           println("*************************")
-          val r :Seq[(String, Seq[String])] = retry(3)(request(apikey,dbFrom,db,listPmids))
-          r
-        })
 
+          Try(retry(retryNum)(request(apikey,dbFrom,db,listPmids))
+            .map(pmid => pmid._1 -> Some(pmid._2))) match {
+            case Success(v) => v
+            case Failure(_) => listPmids.map( pmid => (pmid -> None ) )
+          }
+        })
   }
 
 }

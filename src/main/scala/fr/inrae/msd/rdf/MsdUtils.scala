@@ -5,6 +5,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.jena.rdf.model.Model
 import org.apache.jena.riot.Lang
 import org.apache.jena.riot.RDFDataMgr
+import org.apache.spark.rdd.RDD
 
 case class MsdUtils(rootDir : String = "/rdf", category : String, database : String,spark : SparkSession) {
   val basedir= s"$rootDir/$category/$database/"
@@ -44,7 +45,7 @@ case class MsdUtils(rootDir : String = "/rdf", category : String, database : Str
     finally out.close
   }
 
-  def writeDataframeAsTxt(spark: SparkSession , contain:Seq[String], version : String, outputPathFile : String) = {
+  def writeDataframeAsTxt(spark: SparkSession , contain:RDD[String], version : String, outputPathFile : String) = {
     import spark.implicits._
 
     val outDir : String = basedir+"/"+version

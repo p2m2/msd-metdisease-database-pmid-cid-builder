@@ -53,10 +53,10 @@ object PmidCidBuilder {
         .optional()
         .action({ case (r, c) => c.copy(implGetPMID = r) })
         .validate(x =>
-          if ((x >= 0) && (x <=2)) success
+          if ((x >= 0) && (x <=3)) success
           else failure("Value <implementation> must be >0"))
         .valueName("<implGetPMID>")
-        .text("implementation to get PMID subject from reference - 0 : Dataset[Triple], 1 : [RDD[Binding], 2 : Triples.getSubject."),
+        .text("implementation to get PMID subject from reference - 0 : Dataset[Triple], 1 : [RDD[Binding], 2 : Triples.getSubject. 3: SparqlFrame"),
       opt[Int]("packSize")
         .optional()
         .action({ case (r, c) => c.copy(packSize = r) })
@@ -139,6 +139,23 @@ object PmidCidBuilder {
     }
   }
 
+  /**
+   * First execution of the work.
+   * Build asso PMID <-> CID and a list f PMID error
+   * @param rootMsdDirectory
+   * @param forumCategoryMsd
+   * @param forumDatabaseMsd
+   * @param categoryMsd
+   * @param databaseMsd
+   * @param versionMsd
+   * @param implGetPMID
+   * @param referenceUriPrefix
+   * @param packSize
+   * @param apiKey
+   * @param timeout
+   * @param verbose
+   * @param debug
+   */
   def build(
              rootMsdDirectory : String,
              forumCategoryMsd : String,
@@ -175,39 +192,44 @@ object PmidCidBuilder {
       referenceFileName => implGetPMID match {
         case 1 => PmidCidWork.getPMIDListFromReference_impl2(spark,referenceFileName)
         case 2 => PmidCidWork.getPMIDListFromReference_impl3(spark,referenceFileName)
+        case 3 => PmidCidWork.getPMIDListFromReference_impl4(spark,referenceFileName)
         case _ => PmidCidWork.getPMIDListFromReference_impl1(spark,referenceFileName)
       }))
       val numberOfPmid = pmids.count()
 
+    println("PATITION BEFORE="+ pmids.partitions.size)
     /* repartition to optimize elink http request */
     val pmidsRep = pmids.repartition(numPartitions = (numberOfPmid / packSize).toInt + 1) /* repartition to call elink process */
+    println("PATITION NEXT="+ pmidsRep.partitions.size)
 
     println(s"================PMID List ($numberOfPmid)==============")
     println(pmids.take(10).slice(1,10)+"...")
 
-    val pmidCitoDiscussesCid : RDD[(String,Seq[String])] = EUtils.elink(apikey=apiKey,dbFrom="pubmed", db="pccompound",pmidsRep)
+    val pmidCitoDiscussesCid : RDD[(String,Option[Seq[String]])] = EUtils.elink(apikey=apiKey,dbFrom="pubmed", db="pccompound",pmidsRep)
     println(s"================pmidCitoDiscussesCid (${pmidCitoDiscussesCid.count()})==PARTITION SIZE=${pmidCitoDiscussesCid.partitions.size}============")
 
-//    println(pmidCitoDiscussesCid.take(10).mkString(",")+"...")
+    val pmidCitoDiscussesCidOk : RDD[(String,Seq[String])] = pmidCitoDiscussesCid.filter( _._2.isDefined ).map(v => v._1 -> v._2.get)
+    val pmidCitoDiscussesCidKo : RDD[String] = pmidCitoDiscussesCid.filter( _._2.isEmpty ).map(v => v._1 )
 
     println(" ========== save pmid list without success elink request ========")
     //val lProblemPmid = pmids diff pmidCitoDiscussesCid.keys.toSeq
-    //println(" pmid problem:" + lProblemPmid.length)
-    //println(s"================ Write Turtle $rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/error_with_pmid ==============")
-/*
+    println(s"=====================================================")
+    println(s"=====================================================")
+    println(s"=====================================================")
+    println(" pmid problem:" + pmidCitoDiscussesCidKo.count())
+    println(s"=====================================================")
+    println(s"=====================================================")
+    println(s"=====================================================")
+    println(s"================ Write Turtle $rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/error_with_pmid ==============")
+
     MsdUtils(
       rootDir=rootMsdDirectory,
       category=forumCategoryMsd,
       database=forumDatabaseMsd,
-      spark=spark).writeDataframeAsTxt(spark,lProblemPmid,versionMsd,"error_with_pmid")*/
-    val triples_asso_pmid_cid : RDD[Triple] = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCid)
-   // println(s"================ Write Turtle $rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl ==============")
-   /* MsdUtils(
-      rootDir=rootMsdDirectory,
-      category=forumCategoryMsd,
-      database=forumDatabaseMsd,
-      spark=spark).writeRdf(model,Lang.TURTLE,versionMsd,"pmid_cid.ttl")
-*/
+      spark=spark).writeDataframeAsTxt(spark,pmidCitoDiscussesCidKo,versionMsd,"error_with_pmid")
+
+    val triples_asso_pmid_cid : RDD[Triple] = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCidOk)
+
     import net.sansa_stack.rdf.spark.io._
     triples_asso_pmid_cid.saveAsNTriplesFile(s"$rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl",mode=SaveMode.Overwrite) //.take(5))
     spark.close()

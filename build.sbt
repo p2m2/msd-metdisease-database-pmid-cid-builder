@@ -15,14 +15,14 @@ lazy val root = (project in file("."))
 
 		libraryDependencies ++= Seq(
       scalaTest % Test,
-      "org.apache.spark" %% "spark-core" % sparkVersion % "test,provided",
-      "org.apache.spark" %% "spark-sql"  % sparkVersion % "test,provided",
-      "org.apache.hadoop" % "hadoop-common" % "3.3.1" % "test,provided",
+     // "org.apache.spark" %% "spark-core" % sparkVersion % "test,provided",
+      "org.apache.spark" %% "spark-sql"  % sparkVersion % "provided,test",
+      "org.apache.hadoop" % "hadoop-common" % "3.3.3" % "test,provided",
       "org.apache.hadoop" % "hadoop-client" % "3.3.3" % "test,provided",
       //"org.apache.hadoop" % "hadoop-hdfs" % "3.3.3" % "test,provided",
       "org.apache.commons" % "commons-configuration2" % "2.7"  % "test,provided",
-      "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.5.1" % "test,provided",
-      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.13.3" % "test,provided",
+   //   "com.fasterxml.jackson.core" % "jackson-databind" % "2.13.3" % "test,provided",
+   //   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.13.3" % "test,provided",
       "net.sansa-stack" %% "sansa-rdf-spark" % "0.8.0-RC3" % "test,provided",
       ("net.sansa-stack" %% "sansa-ml-spark" % "0.8.0-RC3")
         .exclude("org.apache.zookeeper","zookeeper")
@@ -36,6 +36,7 @@ lazy val root = (project in file("."))
       ("org.eclipse.rdf4j" % "rdf4j-client" % rdf4jVersion).exclude("commons-codec","commons-codec"),
       ("org.eclipse.rdf4j" % "rdf4j-rio" % rdf4jVersion).exclude("commons-codec","commons-codec")*/
     ),
+    Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
     resolvers ++= Seq(
       "AKSW Maven Releases" at "https://maven.aksw.org/archiva/repository/internal",
       "AKSW Maven Snapshots" at "https://maven.aksw.org/archiva/repository/snapshots",
@@ -47,6 +48,7 @@ lazy val root = (project in file("."))
       "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository",
       "Apache Staging" at "https://repository.apache.org/content/repositories/staging/"
     ),
+    Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-oD"),
     assembly / target := file("assembly"),
       assembly / assemblyJarName := s"msd-metdisease-database-pmid-cid-builder.jar",
     assembly / logLevel := Level.Info,

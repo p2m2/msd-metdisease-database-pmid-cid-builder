@@ -6,14 +6,11 @@ import net.sansa_stack.query.spark.api.domain.ResultSetSpark
 import net.sansa_stack.query.spark.sparqlify.QueryEngineFactorySparqlify
 import net.sansa_stack.rdf.spark.io.RDFReader
 import net.sansa_stack.rdf.spark.model.TripleOperations
-import org.apache.jena.rdf.model.{Model, ModelFactory}
+import org.apache.jena.graph.{NodeFactory, Triple}
 import org.apache.jena.riot.Lang
-import org.apache.jena.sparql.core.Var
 import org.apache.jena.sparql.engine.binding.Binding
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{Dataset, Encoder, Encoders, Row, SparkSession}
-import org.apache.jena.graph.Triple
-import org.apache.jena.graph.NodeFactory
+import org.apache.spark.sql.{Dataset, Encoder, Encoders, SparkSession}
 
 case object PmidCidWork {
   val queryString = "select * where { " +
@@ -28,20 +25,12 @@ case object PmidCidWork {
 
     implicit val enc: Encoder[String] = Encoders.STRING
 
-    val sparqlFrame =
-      new SparqlFrame()
-      .setSparqlQuery(queryString)
-      .setQueryExcecutionEngine(SPARQLEngine.Sparqlify)
-
     triplesDataset.map(
       (triple  : Triple ) => {
         triple.getSubject.toString
       }
     ).rdd
-    /*
-    sparqlFrame.transform(triplesDataset).map(
-      row  => row.get(0).toString
-    ).rdd */
+
   }
 
   def getPMIDListFromReference_impl2(spark : SparkSession,referencePath: String): RDD[String] = {
@@ -65,6 +54,26 @@ case object PmidCidWork {
     println("\n\n **********************")
     val triples = spark.rdf(Lang.TURTLE)(referencePath)
     triples.getSubjects.map(_.toString)
+  }
+
+  def getPMIDListFromReference_impl4(spark : SparkSession,referencePath: String): RDD[String] = {
+    println(" ********************** \n\n")
+    println(" IMPL4 ********************** sparqlFrame **********************")
+    println("\n\n **********************")
+
+    val triples : RDD[Triple] = spark.rdf(Lang.TURTLE)(referencePath)
+    val triplesDataset : Dataset[Triple] = triples.toDS()
+
+    val sparqlFrame =
+      new SparqlFrame()
+        .setSparqlQuery(queryString)
+        .setQueryExcecutionEngine(SPARQLEngine.Sparqlify)
+
+    implicit val enc: Encoder[String] = Encoders.STRING
+
+    sparqlFrame.transform(triplesDataset).map(
+        row  => row.get(0).toString
+    ).rdd
   }
 
   def buildCitoDiscusses(mapPmidCid : RDD[(String,Seq[String])]) : RDD[Triple]  = {
