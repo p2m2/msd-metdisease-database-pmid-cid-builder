@@ -27,7 +27,7 @@ object PmidCidBuilder {
                      pubchemVersionMsd: Option[String] = None,
                      implGetPMID: Int = 0, /* 0 : Dataset[Triple], 1 : [RDD[Binding], 2 : Triples.getSubject */
                      referenceUriPrefix: String = "http://rdf.ncbi.nlm.nih.gov/pubchem/reference/PMID",
-                     packSize : Int = 300,
+                     packSize : Int = 350,
                      apiKey : Option[String] = Some("30bc501ba6ab4cba2feedffb726cbe825c0a"),
                      timeout : Int = 1200,
                      verbose: Boolean = false,
@@ -216,7 +216,9 @@ object PmidCidBuilder {
     println(s"=====================================================")
     println(s"=====================================================")
     println(s"=====================================================")
+    println(" pmid all    :" + pmidCitoDiscussesCid.count())
     println(" pmid problem:" + pmidCitoDiscussesCidKo.count())
+    println(" pmid OK     :" + pmidCitoDiscussesCidOk.count())
     println(s"=====================================================")
     println(s"=====================================================")
     println(s"=====================================================")

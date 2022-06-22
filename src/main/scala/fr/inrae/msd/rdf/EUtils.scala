@@ -17,13 +17,12 @@ case object EUtils {
              ): Seq[(String, Seq[String])] = {
 
     val p = requests.post(
-
       base + s"elink.fcgi",
       compress = requests.Compress.None,
-      data = (Seq(
+      data = Seq(
         "api_key" -> apikey,
         "dbfrom" -> dbFrom,
-        "db" -> db) ++ uid_list_sub.map("id" -> _)).toMap
+        "db" -> db) ++ uid_list_sub.map("id" -> _)
     )
     val xml = scala.xml.XML.loadString(p.text)
     xml \\ "LinkSet" map { linkSet =>
@@ -43,7 +42,7 @@ case object EUtils {
         Thread.sleep(durationRetry)
         retry(n - 1)(fn)
       }
-      case Failure(e) => println(e.getMessage()) ; throw new Exception("stop")
+      case Failure(e) => println(e.getMessage()) ; throw new Exception("stop retry")
     }
   }
 
@@ -68,11 +67,9 @@ case object EUtils {
         .flatMap(listPmids => {
           println("*********************************REQUEST**************************")
           println(listPmids.length)
-          println("*************************")
-
           Try(retry(retryNum)(request(apikey,dbFrom,db,listPmids))
             .map(pmid => pmid._1 -> Some(pmid._2))) match {
-            case Success(v) => v
+            case Success(v) => println("v:"+v.mkString(","));v
             case Failure(_) => listPmids.map( pmid => (pmid -> None ) )
           }
         })
