@@ -1,8 +1,11 @@
 package fr.inrae.msd.rdf
 
+import fr.inrae.semantic_web.ProvenanceBuilder
 import org.apache.jena.graph.Triple
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
+
+import java.util.Date
 
 /**
  * https://services.pfem.clermont.inrae.fr/gitlab/forum/metdiseasedatabase/-/blob/develop/app/build/import_PMID_CID.py
@@ -119,8 +122,9 @@ object PmidCidBuilder extends App {
             case Some(version) => version
             case None => MsdUtils(
               rootDir=config.rootMsdDirectory,
+              spark=spark,
               category=config.pubchemCategoryMsd,
-              database=config.pubchemDatabaseMsd,spark=spark).getLastVersion()
+              database=config.pubchemDatabaseMsd).getLastVersion
           },
           config.implGetPMID,
           config.referenceUriPrefix,
@@ -169,14 +173,18 @@ object PmidCidBuilder extends App {
              timeout : Int,
              verbose: Boolean,
              debug: Boolean) : Unit = {
+
+    val startBuild = new Date()
+
     println("============== Main Build ====================")
     println(s"categoryMsd=$categoryMsd,databaseMsd=$databaseMsd,versionMsd=$versionMsd")
     println("==============  getPMIDListFromReference ====================")
     val listReferenceFileNames = MsdUtils(
       rootDir=rootMsdDirectory,
+      spark=spark,
       category=categoryMsd,
       database=databaseMsd,
-      spark=spark).getListFiles(versionMsd,".*_type.*\\.ttl")
+      version=versionMsd).getListFiles(".*_type.*\\.ttl")
 
     println("================listReferenceFileNames==============")
     println(listReferenceFileNames)
@@ -225,14 +233,33 @@ object PmidCidBuilder extends App {
 
     MsdUtils(
       rootDir=rootMsdDirectory,
+      spark=spark,
       category=forumCategoryMsd,
       database=forumDatabaseMsd,
-      spark=spark).writeDataframeAsTxt(spark,pmidCitoDiscussesCidKo,versionMsd,"error_with_pmid")
+      version=versionMsd).writeDataframeAsTxt(spark,pmidCitoDiscussesCidKo,"error_with_pmid")
 
     val triples_asso_pmid_cid : RDD[Triple] = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCidOk)
 
     import net.sansa_stack.rdf.spark.io._
     triples_asso_pmid_cid.saveAsNTriplesFile(s"$rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl",mode=SaveMode.Overwrite) //.take(5))
+
+    val contentProvenanceRDF : String =
+      ProvenanceBuilder.provSparkSubmit(
+      projectUrl ="https://github.com/p2m2/msd-metdisease-database-pmid-cid-builder",
+      category = forumCategoryMsd,
+      database = forumDatabaseMsd,
+      release=versionMsd,
+      startDate = startBuild,
+      spark
+    )
+
+    MsdUtils(
+      rootDir=rootMsdDirectory,
+      spark=spark,
+      category="prov",
+      database=forumDatabaseMsd,
+      version=versionMsd).writeFile(spark,contentProvenanceRDF,"msd-metdisease-database-pmid-cid-builder-"+versionMsd+".ttl")
+
     spark.close()
   }
 
