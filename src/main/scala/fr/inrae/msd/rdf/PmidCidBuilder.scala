@@ -1,8 +1,11 @@
 package fr.inrae.msd.rdf
 
+import fr.inrae.semantic_web.ProvenanceBuilder
 import org.apache.jena.graph.Triple
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
+
+import java.util.Date
 
 /**
  * https://services.pfem.clermont.inrae.fr/gitlab/forum/metdiseasedatabase/-/blob/develop/app/build/import_PMID_CID.py
@@ -14,7 +17,7 @@ import org.apache.spark.sql.SparkSession
 To avoid => Exception in thread "main" java.lang.NoSuchMethodError: scala.runtime.Statics.releaseFence()V
 can not extends App
  */
-object PmidCidBuilder {
+object PmidCidBuilder extends App {
 
   import scopt.OParser
 
@@ -103,7 +106,6 @@ object PmidCidBuilder {
       "net.sansa_stack.query.spark.sparqlify.KryoRegistratorSparqlify"))
     .getOrCreate()
 
-  def main(args: Array[String]): Unit = {
 
     // OParser.parse returns Option[Config]
     OParser.parse(parser1, args, Config()) match {
@@ -120,8 +122,9 @@ object PmidCidBuilder {
             case Some(version) => version
             case None => MsdUtils(
               rootDir=config.rootMsdDirectory,
+              spark=spark,
               category=config.pubchemCategoryMsd,
-              database=config.pubchemDatabaseMsd,spark=spark).getLastVersion()
+              database=config.pubchemDatabaseMsd).getLastVersion
           },
           config.implGetPMID,
           config.referenceUriPrefix,
@@ -137,7 +140,7 @@ object PmidCidBuilder {
         // arguments are bad, error message will have been displayed
         System.err.println("exit with error.")
     }
-  }
+
 
   /**
    * First execution of the work.
@@ -170,14 +173,18 @@ object PmidCidBuilder {
              timeout : Int,
              verbose: Boolean,
              debug: Boolean) : Unit = {
+
+    val startBuild = new Date()
+
     println("============== Main Build ====================")
     println(s"categoryMsd=$categoryMsd,databaseMsd=$databaseMsd,versionMsd=$versionMsd")
     println("==============  getPMIDListFromReference ====================")
     val listReferenceFileNames = MsdUtils(
       rootDir=rootMsdDirectory,
+      spark=spark,
       category=categoryMsd,
       database=databaseMsd,
-      spark=spark).getListFiles(versionMsd,".*_type.*\\.ttl")
+      version=versionMsd).getListFiles(".*_type.*\\.ttl")
 
     println("================listReferenceFileNames==============")
     println(listReferenceFileNames)
@@ -226,14 +233,33 @@ object PmidCidBuilder {
 
     MsdUtils(
       rootDir=rootMsdDirectory,
+      spark=spark,
       category=forumCategoryMsd,
       database=forumDatabaseMsd,
-      spark=spark).writeDataframeAsTxt(spark,pmidCitoDiscussesCidKo,versionMsd,"error_with_pmid")
+      version=versionMsd).writeDataframeAsTxt(spark,pmidCitoDiscussesCidKo,"error_with_pmid")
 
     val triples_asso_pmid_cid : RDD[Triple] = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCidOk)
 
     import net.sansa_stack.rdf.spark.io._
     triples_asso_pmid_cid.saveAsNTriplesFile(s"$rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl",mode=SaveMode.Overwrite) //.take(5))
+
+    val contentProvenanceRDF : String =
+      ProvenanceBuilder.provSparkSubmit(
+      projectUrl ="https://github.com/p2m2/msd-metdisease-database-pmid-cid-builder",
+      category = forumCategoryMsd,
+      database = forumDatabaseMsd,
+      release=versionMsd,
+      startDate = startBuild,
+      spark
+    )
+
+    MsdUtils(
+      rootDir=rootMsdDirectory,
+      spark=spark,
+      category="prov",
+      database=forumDatabaseMsd,
+      version=versionMsd).writeFile(spark,contentProvenanceRDF,"msd-metdisease-database-pmid-cid-builder-"+versionMsd+".ttl")
+
     spark.close()
   }
 
