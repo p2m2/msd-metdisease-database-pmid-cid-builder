@@ -36,6 +36,7 @@ lazy val root = (project in file("."))
       ("org.eclipse.rdf4j" % "rdf4j-client" % rdf4jVersion).exclude("commons-codec","commons-codec"),
       ("org.eclipse.rdf4j" % "rdf4j-rio" % rdf4jVersion).exclude("commons-codec","commons-codec")*/
     ),
+    mainClass in (Compile, run) := Some("fr.inrae.msd.rdf.PmidCidBuilder"),
     Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
     resolvers ++= Seq(
       "AKSW Maven Releases" at "https://maven.aksw.org/archiva/repository/internal",
