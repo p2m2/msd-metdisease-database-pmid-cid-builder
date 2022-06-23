@@ -14,7 +14,7 @@ import org.apache.spark.sql.SparkSession
 To avoid => Exception in thread "main" java.lang.NoSuchMethodError: scala.runtime.Statics.releaseFence()V
 can not extends App
  */
-object PmidCidBuilder {
+object PmidCidBuilder extends App {
 
   import scopt.OParser
 
@@ -103,7 +103,6 @@ object PmidCidBuilder {
       "net.sansa_stack.query.spark.sparqlify.KryoRegistratorSparqlify"))
     .getOrCreate()
 
-  def main(args: Array[String]): Unit = {
 
     // OParser.parse returns Option[Config]
     OParser.parse(parser1, args, Config()) match {
@@ -137,7 +136,7 @@ object PmidCidBuilder {
         // arguments are bad, error message will have been displayed
         System.err.println("exit with error.")
     }
-  }
+
 
   /**
    * First execution of the work.
