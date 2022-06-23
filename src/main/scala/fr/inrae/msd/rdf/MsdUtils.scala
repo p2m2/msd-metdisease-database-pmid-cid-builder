@@ -1,18 +1,27 @@
 package fr.inrae.msd.rdf
 
-import org.apache.hadoop.fs.{FSDataOutputStream, FileContext, FileStatus, FileSystem, Path}
-import org.apache.spark.sql.SparkSession
+import org.apache.hadoop.fs._
 import org.apache.jena.rdf.model.Model
-import org.apache.jena.riot.Lang
-import org.apache.jena.riot.RDFDataMgr
+import org.apache.jena.riot.{Lang, RDFDataMgr}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SparkSession
 
-case class MsdUtils(rootDir : String = "/rdf", category : String, database : String,spark : SparkSession) {
-  val basedir= s"$rootDir/$category/$database/"
+case class MsdUtils(
+                     rootDir : String = "/rdf",
+                     spark : SparkSession,
+                     category : String,
+                     database : String,
+                     version : String = ""
+                     ) {
 
-  val fs = org.apache.hadoop.fs.FileSystem.get(spark.sparkContext.hadoopConfiguration)
+  val basedir : String     = s"$rootDir/$category/$database/"
+  val fs: FileSystem       = org.apache.hadoop.fs.FileSystem.get(spark.sparkContext.hadoopConfiguration)
+  val versionUsed : String = version match {
+    case v if v.isEmpty => getLastVersion
+    case _ => version
+  }
 
-  def getLastVersion() : String = {
+  def getLastVersion: String = {
     println("************** getLastVersion ************************** ")
     fs.listStatus(new Path(s"$basedir"))
       .filter(_.isDirectory)
@@ -24,16 +33,16 @@ case class MsdUtils(rootDir : String = "/rdf", category : String, database : Str
     }
   }
 
-  def getListFiles(versionDirectory : String,filterString : String): Seq[String] = {
-    fs.listStatus(new Path(s"$basedir/$versionDirectory"))
+  def getListFiles(filterString : String): Seq[String] = {
+    fs.listStatus(new Path(s"$basedir/$versionUsed"))
       .filter( _.getPath.toString.matches(filterString))
       .map( (a : FileStatus) => a.getPath.toString )
   }
 
-  def getPath(version : String ) = s"$basedir/$version"
+  def getPath : String = s"$basedir/$versionUsed"
 
-  def writeRdf(model:Model, format : Lang, version : String, outputPathFile : String): Unit = {
-    val outDir : String = basedir+"/"+version
+  def writeRdf(model:Model, format : Lang, outputPathFile : String): Unit = {
+    val outDir : String = basedir+"/"+versionUsed
 
     if (! fs.exists(new Path(outDir))) {
       fs.mkdirs(new Path(outDir))
@@ -45,10 +54,10 @@ case class MsdUtils(rootDir : String = "/rdf", category : String, database : Str
     finally out.close
   }
 
-  def writeDataframeAsTxt(spark: SparkSession , contain:RDD[String], version : String, outputPathFile : String) = {
+  def writeDataframeAsTxt(spark: SparkSession , contain:RDD[String], outputPathFile : String): Unit = {
     import spark.implicits._
 
-    val outDir : String = basedir+"/"+version
+    val outDir : String = basedir+"/"+versionUsed
 
     if (! fs.exists(new Path(outDir))) {
       fs.mkdirs(new Path(outDir))
@@ -59,5 +68,21 @@ case class MsdUtils(rootDir : String = "/rdf", category : String, database : Str
       .write
       .mode("overwrite")
       .text(s"$outDir/$outputPathFile")
+  }
+
+  def writeFile(spark: SparkSession , content: String, outputPathFile : String): Unit = {
+    import spark.implicits._
+
+    val outDir: String = basedir + "/" + versionUsed
+
+    if (!fs.exists(new Path(outDir))) {
+      fs.mkdirs(new Path(outDir))
+    }
+
+    val hdfsWritePath = new Path(outDir + "/" + outputPathFile)
+
+    val outputStream = fs.create(hdfsWritePath)
+    outputStream.writeBytes(content)
+    outputStream.close()
   }
 }
