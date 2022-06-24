@@ -18,6 +18,7 @@ case object EUtils {
 
     val p = requests.post(
       base + s"elink.fcgi",
+      headers=Map("Content-Type"-> "application/x-www-form-urlencoded"),
       compress = requests.Compress.None,
       data = Seq(
         "api_key" -> apikey,
@@ -69,7 +70,7 @@ case object EUtils {
           println(listPmids.length)
           Try(retry(retryNum)(request(apikey,dbFrom,db,listPmids))
             .map(pmid => pmid._1 -> Some(pmid._2))) match {
-            case Success(v) => println("v:"+v.mkString(","));v
+            case Success(v) => v
             case Failure(_) => listPmids.map( pmid => (pmid -> None ) )
           }
         })
