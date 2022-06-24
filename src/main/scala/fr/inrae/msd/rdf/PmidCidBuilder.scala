@@ -27,7 +27,7 @@ object PmidCidBuilder {
                      pubchemVersionMsd: Option[String] = None,
                      implGetPMID: Int = 0, /* 0 : Dataset[Triple], 1 : [RDD[Binding], 2 : Triples.getSubject */
                      referenceUriPrefix: String = "http://rdf.ncbi.nlm.nih.gov/pubchem/reference/PMID",
-                     packSize : Int = 350,
+                     packSize : Int = 5000,
                      apiKey : Option[String] = Some("30bc501ba6ab4cba2feedffb726cbe825c0a"),
                      timeout : Int = 1200,
                      verbose: Boolean = false,
@@ -57,7 +57,7 @@ object PmidCidBuilder {
           else failure("Value <implementation> must be >0"))
         .valueName("<implGetPMID>")
         .text("implementation to get PMID subject from reference - 0 : Dataset[Triple], 1 : [RDD[Binding], 2 : Triples.getSubject. 3: SparqlFrame"),
-      opt[Int]("packSize")
+      opt[Int]('p',"packSize")
         .optional()
         .action({ case (r, c) => c.copy(packSize = r) })
         .validate(x =>
