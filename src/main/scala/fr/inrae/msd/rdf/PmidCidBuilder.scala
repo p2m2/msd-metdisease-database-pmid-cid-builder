@@ -213,7 +213,7 @@ object PmidCidBuilder extends App {
     println(pmids.take(10).slice(1,10)+"...")
 
     val pmidCitoDiscussesCid : RDD[(String,Option[Seq[String]])] = EUtils.elink(apikey=apiKey,dbFrom="pubmed", db="pccompound",pmidsRep)
-    println(s"================pmidCitoDiscussesCid (${pmidCitoDiscussesCid.count()})==PARTITION SIZE=${pmidCitoDiscussesCid.partitions.size}============")
+    //println(s"================pmidCitoDiscussesCid (${pmidCitoDiscussesCid.count()})==PARTITION SIZE=${pmidCitoDiscussesCid.partitions.size}============")
 
     val pmidCitoDiscussesCidOk : RDD[(String,Seq[String])] = pmidCitoDiscussesCid.filter( _._2.isDefined ).map(v => v._1 -> v._2.get)
     val pmidCitoDiscussesCidKo : RDD[String] = pmidCitoDiscussesCid.filter( _._2.isEmpty ).map(v => v._1 )
@@ -223,9 +223,9 @@ object PmidCidBuilder extends App {
     println(s"=====================================================")
     println(s"=====================================================")
     println(s"=====================================================")
-    println(" pmid all    :" + pmidCitoDiscussesCid.count())
-    println(" pmid problem:" + pmidCitoDiscussesCidKo.count())
-    println(" pmid OK     :" + pmidCitoDiscussesCidOk.count())
+    //println(" pmid all    :" + pmidCitoDiscussesCid.count())
+    //println(" pmid problem:" + pmidCitoDiscussesCidKo.count())
+    //println(" pmid OK     :" + pmidCitoDiscussesCidOk.count())
     println(s"=====================================================")
     println(s"=====================================================")
     println(s"=====================================================")
