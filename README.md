@@ -5,7 +5,6 @@
 ```
 spark-submit \
    --deploy-mode cluster \
-   --class fr.inrae.msd.rdf.PmidCidBuilder \
    --executor-memory 2G \
    --num-executors 10 \
    --conf spark.yarn.appMasterEnv.JAVA_HOME="/usr/local/openjdk/jdk-12.0.2+10/" \
