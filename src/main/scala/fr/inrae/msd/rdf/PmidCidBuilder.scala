@@ -23,7 +23,7 @@ object PmidCidBuilder extends App {
 
   case class Config(
                      rootMsdDirectory : String = "/rdf",
-                     forumCategoryMsd : String = "forum",
+                     forumCategoryMsd : String = "forum/DiseaseChem",
                      forumDatabaseMsd : String = "PMID_CID",
                      pubchemCategoryMsd : String = "pubchem", //"/rdf/pubchem/compound-general/2021-11-23",
                      pubchemDatabaseMsd : String = "reference", // "/rdf/pubchem/reference/2021-11-23",
