@@ -106,12 +106,12 @@ case object PmidCidWork {
             Triple.create(
               subject,
               NodeFactory.createURI("http://purl.obolibrary.org/obo/IAO_0000136"),
-              NodeFactory.createURI(s"http://rdf.ncbi.nlm.nih.gov/pubchem/reference/${elinkData.pmid}")
+              NodeFactory.createURI(s"http://rdf.ncbi.nlm.nih.gov/pubchem/reference/PMID${elinkData.pmid}")
             ),
             Triple.create(
               subject,
               NodeFactory.createURI("http://purl.org/spar/cito/isCitedAsDataSourceBy"),
-              NodeFactory.createURI(s"http://rdf.ncbi.nlm.nih.gov/pubchem/compound/$cid")
+              NodeFactory.createURI(s"http://rdf.ncbi.nlm.nih.gov/pubchem/compound/CID$cid")
             )) ++
             elinkData.contributorType.map(
               contributorType =>
