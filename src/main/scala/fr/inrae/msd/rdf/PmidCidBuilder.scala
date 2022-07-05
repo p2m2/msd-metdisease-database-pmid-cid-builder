@@ -1,9 +1,10 @@
 package fr.inrae.msd.rdf
 
+import fr.inrae.msd.rdf.EUtils.ElinkData
 import fr.inrae.semantic_web.ProvenanceBuilder
 import org.apache.jena.graph.Triple
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{Dataset, Encoder, Encoders, SparkSession}
 
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -99,11 +100,8 @@ object PmidCidBuilder extends App {
     .builder()
     .appName("msd-metdisease-database-pmid-cid-builder")
     .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-    .config("spark.kryo.registrator", String.join(
-      ", ",
-      "net.sansa_stack.rdf.spark.io.JenaKryoRegistrator",
-      "net.sansa_stack.query.spark.ontop.OntopKryoRegistrator",
-      "net.sansa_stack.query.spark.sparqlify.KryoRegistratorSparqlify"))
+    .config("spark.sql.crossJoin.enabled", "true")
+    .config("spark.kryo.registrator","net.sansa_stack.rdf.spark.io.JenaKryoRegistrator")
     .getOrCreate()
 
 
@@ -182,7 +180,7 @@ object PmidCidBuilder extends App {
       spark=spark,
       category=categoryMsd,
       database=databaseMsd,
-      version=versionMsd).getListFiles(".*_type.*\\.ttl")
+      version=Some(versionMsd)).getListFiles(".*_type.*\\.ttl")
 
     println("================listReferenceFileNames==============")
     println(listReferenceFileNames)
@@ -204,17 +202,31 @@ object PmidCidBuilder extends App {
 
     println("PATITION BEFORE="+ pmids.partitions.size)
     /* repartition to optimize elink http request */
-    val pmidsRep = pmids.repartition(numPartitions = (numberOfPmid / packSize).toInt + 1) /* repartition to call elink process */
+    val pmidsRep : RDD[String] = pmids.repartition(numPartitions = (numberOfPmid / packSize).toInt + 1) /* repartition to call elink process */
     println("PATITION NEXT="+ pmidsRep.partitions.size)
 
     println(s"================PMID List ($numberOfPmid)==============")
-    println(pmids.take(10).slice(1,10)+"...")
-
-    val pmidCitoDiscussesCid : RDD[(String,Option[Seq[String]])] = EUtils.elink(apikey=apiKey,dbFrom="pubmed", db="pccompound",pmidsRep)
+    println(pmids.take(10).slice(1, 10).mkString("Array(", ", ", ")")+"...")
+    import spark.implicits._
+    val pmidCitoDiscussesCid : RDD[Either[Seq[ElinkData],Seq[String]]] = EUtils.elink(apikey=apiKey,dbFrom="pubmed", db="pccompound",pmidsRep)
     //println(s"================pmidCitoDiscussesCid (${pmidCitoDiscussesCid.count()})==PARTITION SIZE=${pmidCitoDiscussesCid.partitions.size}============")
 
-    val pmidCitoDiscussesCidOk : RDD[(String,Seq[String])] = pmidCitoDiscussesCid.filter( _._2.isDefined ).map(v => v._1 -> v._2.get)
-    val pmidCitoDiscussesCidKo : RDD[String] = pmidCitoDiscussesCid.filter( _._2.isEmpty ).map(v => v._1 )
+    println("=================================")
+    pmidCitoDiscussesCid.take(5).foreach(println)
+    println("=================================")
+
+    implicit val encoderSchema = Encoders.product[ElinkData]
+    implicit val seqStringStringEncoder: Encoder[(String,Seq[String])] = Encoders.product[(String,Seq[String])]
+
+    val pmidCitoDiscussesCidOk : Dataset[(String,Seq[String])] =
+      pmidCitoDiscussesCid
+        .filter( _.isLeft )
+        .flatMap( _.left.get )
+        .map( v => (v.pmid -> v.cids) ).toDS()
+
+    val pmidCitoDiscussesCidKo : Dataset[String] = pmidCitoDiscussesCid.filter( _.isRight ).flatMap(v => v.right.get ).toDS()
+
+    val contributors : Dataset[ElinkData] = pmidCitoDiscussesCid.filter( _.isLeft ).flatMap( _.left.get ).toDS()
 
     println(" ========== save pmid list without success elink request ========")
     //val lProblemPmid = pmids diff pmidCitoDiscussesCid.keys.toSeq
@@ -237,12 +249,17 @@ object PmidCidBuilder extends App {
       spark=spark,
       category=forumCategoryMsd,
       database=forumDatabaseMsd,
-      version=versionPMIDCID).writeDataframeAsTxt(spark,pmidCitoDiscussesCidKo,"error_with_pmid")
+      version=Some(versionPMIDCID)).writeDataframeAsTxt(spark,pmidCitoDiscussesCidKo,"error_with_pmid")
 
-    val triples_asso_pmid_cid : RDD[Triple] = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCidOk)
+    val triples_asso_pmid_cid : Dataset[Triple] = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCidOk)
+    val triples_contributor : Dataset[Triple] = PmidCidWork.buildContributors(spark,contributors)
+
+    implicit val nodeTupleEncoder = Encoders.kryo(classOf[Triple])
+    val triples = triples_asso_pmid_cid.union(triples_contributor).rdd
 
     import net.sansa_stack.rdf.spark.io._
-    triples_asso_pmid_cid.saveAsNTriplesFile(s"$rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionPMIDCID/pmid_cid.ttl",mode=SaveMode.Overwrite) //.take(5))
+
+    triples.saveAsNTriplesFile(s"$rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionPMIDCID/pmid_cid.ttl",mode=SaveMode.Overwrite)
 
     val contentProvenanceRDF : String =
       ProvenanceBuilder.provSparkSubmit(
@@ -258,8 +275,8 @@ object PmidCidBuilder extends App {
       rootDir=rootMsdDirectory,
       spark=spark,
       category="prov",
-      database=forumDatabaseMsd,
-      version=versionPMIDCID).writeFile(spark,contentProvenanceRDF,"msd-metdisease-database-pmid-cid-builder-"+versionPMIDCID+".ttl")
+      database="",
+      version=Some("")).writeFile(spark,contentProvenanceRDF,"msd-metdisease-database-pmid-cid-builder-"+versionPMIDCID+".ttl")
 
     spark.close()
   }

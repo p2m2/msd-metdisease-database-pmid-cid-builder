@@ -5,7 +5,7 @@ ThisBuild / version          := "0.1.0-SNAPSHOT"
 ThisBuild / organization     := "com.github.p2m2"
 ThisBuild / organizationName := "p2m2"
 
-val sparkVersion  = "3.1.3"
+val sparkVersion  = "3.2.1"
 lazy val rdf4jVersion = "4.0.2"
 lazy val slf4j_version = "1.7.36"
 
@@ -16,12 +16,15 @@ lazy val root = (project in file("."))
 		libraryDependencies ++= Seq(
       scalaTest % Test,
       "org.apache.spark" %% "spark-sql"  % sparkVersion % "provided,test",
-      "org.apache.hadoop" % "hadoop-common" % "3.3.3" % "test,provided",
-      "org.apache.hadoop" % "hadoop-client" % "3.3.3" % "test,provided",
-      "org.apache.commons" % "commons-configuration2" % "2.7"  % "test,provided",
-      "net.sansa-stack" %% "sansa-rdf-spark" % "0.8.0-RC3" % "test,provided",
+      ("net.sansa-stack" %% "sansa-rdf-spark" % "0.8.0-RC3")
+        .exclude("org.apache.zookeeper","zookeeper")
+        .exclude("org.apache.avro","avro-mapred")
+        .exclude("com.fasterxml.jackson","databind")
+        .exclude("org.apache.hadoop","hadoop-common") % "test,provided",
       ("net.sansa-stack" %% "sansa-ml-spark" % "0.8.0-RC3")
         .exclude("org.apache.zookeeper","zookeeper")
+        .exclude("org.apache.avro","avro-mapred")
+        .exclude("com.fasterxml.jackson","databind")
         .exclude("org.apache.hadoop","hadoop-common") % "test,provided"
       ,
       "com.lihaoyi" %% "requests" % "0.7.1",

@@ -11,6 +11,12 @@ class PmidCidBuilderSpec extends AnyFlatSpec with Matchers {
     .builder()
       .appName("local-test")
       .master("local[*]")
+      .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+      .config("spark.kryo.registrator", String.join(
+        ", ",
+        "net.sansa_stack.rdf.spark.io.JenaKryoRegistrator",
+        "net.sansa_stack.query.spark.ontop.OntopKryoRegistrator",
+        "net.sansa_stack.query.spark.sparqlify.KryoRegistratorSparqlify"))
       .getOrCreate()
 /*
   "The Hello object" should "say hello" in {
@@ -39,6 +45,6 @@ class PmidCidBuilderSpec extends AnyFlatSpec with Matchers {
     PmidCidWork.buildCitoDiscusses(r3)
   }
   "getLastVersion()" should "ok" in {
-    MsdUtils(".","src","test",spark).getLastVersion()
+    MsdUtils(".",spark,"src","test").getLastVersion
   }
 }

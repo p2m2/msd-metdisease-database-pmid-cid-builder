@@ -25,3 +25,16 @@ spark-submit \
 source env/bin/activate
 python3 -u app/build/import_PMID_CID.py --config="./config/release-2021/import_PMID_CID.ini" --out="./share-virtuoso" --log="./logs-app"
 ```
+
+## Example RDF Build
+
+```rdf
+<http://rdf.ncbi.nlm.nih.gov/pubchem/reference/PMID4304657> <http://purl.org/spar/cito/discusses> <http://rdf.ncbi.nlm.nih.gov/pubchem/compound/CID2153>
+<https://forum.semantic-metabolomics.org/mention/PMID4304657_CID2153> <http://purl.obolibrary.org/obo/IAO_0000136> <http://rdf.ncbi.nlm.nih.gov/pubchem/reference/PMID4304657>
+<https://forum.semantic-metabolomics.org/mention/PMID4304657_CID2153> <http://purl.org/spar/cito/isCitedAsDataSourceBy> <http://rdf.ncbi.nlm.nih.gov/pubchem/compound/CID2153>
+<https://forum.semantic-metabolomics.org/mention/PMID4304657_CID2153> <http://purl.org/dc/terms/contributor> "pubmed_pccompound"
+```
+
+"pubmed_pccompound"
+"pubmed_pccompound_mesh"
+"pubmed_pccompound_publisher"
