@@ -10,11 +10,17 @@ case object EUtils {
   val durationRetry : Int   = 10000 /* milliseconds */
   val retryNum      : Int   = 10
 
+  case class ElinkData(
+                        pmid : String ,
+                        contributorType : Seq[String], /* "pubmed_pccompound", "pubmed_pccompound_mesh", "pubmed_pccompound_publisher"*/
+                        cids : Seq[String],
+                      )
+
   def request(apikey: String,
               dbFrom: String,
               db: String,
               uid_list_sub: Seq[String]
-             ): Seq[(String, Seq[String])] = {
+             ): Seq[ElinkData] = {
 
     val p = requests.post(
       base + s"elink.fcgi",
@@ -26,8 +32,14 @@ case object EUtils {
         "db" -> db) ++ uid_list_sub.map("id" -> _)
     )
     val xml = scala.xml.XML.loadString(p.text)
+
+
     xml \\ "LinkSet" map { linkSet =>
-      (linkSet \\ "IdList" \\ "Id").text -> (linkSet \\ "LinkSetDb" \\ "Link" \\ "Id" map { id => id.text })
+      ElinkData(
+        pmid = (linkSet \\ "IdList" \\ "Id").text ,
+        contributorType = linkSet \\ "LinkName" map { id => id.text } ,
+        cids = linkSet \\ "LinkSetDb" \\ "Link" \\ "Id" map { id => id.text }
+      )
     }
   }
 
@@ -57,7 +69,7 @@ case object EUtils {
              apikey:String,
              dbFrom : String,
              db : String,
-             uid_list : RDD[String]) : RDD[(String,Option[Seq[String]])] = {
+             uid_list : RDD[String]) : RDD[Either[Seq[ElinkData],Seq[String]]] = {
 
     println("*********************************elink**************************")
      val g= uid_list
@@ -65,13 +77,11 @@ case object EUtils {
         .glom()
     println(s"COUNT GLOM=${g.count()}")
        g
-        .flatMap(listPmids => {
-          println("*********************************REQUEST**************************")
-          println(listPmids.length)
-          Try(retry(retryNum)(request(apikey,dbFrom,db,listPmids))
-            .map(pmid => pmid._1 -> Some(pmid._2))) match {
-            case Success(v) => v
-            case Failure(_) => listPmids.map( pmid => (pmid -> None ) )
+        .map(listPmids => {
+          Try(retry(retryNum)(request(apikey,dbFrom,db,listPmids)))
+          match {
+            case Success(v) => Left(v)
+            case Failure(_) => Right(listPmids)
           }
         })
   }

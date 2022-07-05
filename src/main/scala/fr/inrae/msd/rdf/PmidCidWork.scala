@@ -1,5 +1,6 @@
 package fr.inrae.msd.rdf
 
+import fr.inrae.msd.rdf.EUtils.ElinkData
 import net.sansa_stack.ml.spark.featureExtraction.SparqlFrame
 import net.sansa_stack.query.spark.SPARQLEngine
 import net.sansa_stack.query.spark.api.domain.ResultSetSpark
@@ -76,15 +77,9 @@ case object PmidCidWork {
     ).rdd
   }
 
-  def buildCitoDiscusses(mapPmidCid : RDD[(String,Seq[String])]) : RDD[Triple]  = {
-    // create an empty model
-    /*
-    val model : Model = ModelFactory.createDefaultModel()
-    model.setNsPrefix("cito", "http://purl.org/spar/cito/")
-      .setNsPrefix("compound", "http://rdf.ncbi.nlm.nih.gov/pubchem/compound/")
-      .setNsPrefix("reference", "http://rdf.ncbi.nlm.nih.gov/pubchem/reference/")*/
-    //mapPmidCid.take(5).foreach( println )
-
+  def buildCitoDiscusses(mapPmidCid : Dataset[(String,Seq[String])]) : Dataset[Triple]  = {
+    implicit val nodeTripleEncoder: Encoder[Seq[Triple]] = Encoders.kryo(classOf[Seq[Triple]])
+    implicit val nodeSeqTripleEncoder: Encoder[Triple] = Encoders.kryo(classOf[Triple])
     mapPmidCid.map {
           case (pmid : String,listCid : Seq[String]) =>listCid.map ( cid => {
 
@@ -97,5 +92,37 @@ case object PmidCidWork {
      }.flatMap(
       x => x
     )
+  }
+
+  def buildContributors(spark : SparkSession,contributors : Dataset[ElinkData]) : Dataset[Triple]  = {
+
+    implicit val nodeTripleEncoder: Encoder[Triple] = Encoders.kryo(classOf[Triple])
+    spark.emptyDataset[Triple].union(
+      contributors.flatMap(
+      elinkData => {
+        elinkData.cids.flatMap(cid => {
+          val subject = NodeFactory.createURI(s"https://forum.semantic-metabolomics.org/mention/PMID${elinkData.pmid}_CID$cid")
+          Seq(
+            Triple.create(
+              subject,
+              NodeFactory.createURI("http://purl.obolibrary.org/obo/IAO_0000136"),
+              NodeFactory.createURI(s"http://rdf.ncbi.nlm.nih.gov/pubchem/reference/${elinkData.pmid}")
+            ),
+            Triple.create(
+              subject,
+              NodeFactory.createURI("http://purl.org/spar/cito/isCitedAsDataSourceBy"),
+              NodeFactory.createURI(s"http://rdf.ncbi.nlm.nih.gov/pubchem/compound/$cid")
+            )) ++
+            elinkData.contributorType.map(
+              contributorType =>
+                Triple.create(
+                  subject,
+                  NodeFactory.createURI("http://purl.org/dc/terms/contributor"),
+                  NodeFactory.createURI(contributorType)
+                )
+            )
+        })
+      }
+    ))
   }
 }

@@ -3,8 +3,7 @@ package fr.inrae.msd.rdf
 import org.apache.hadoop.fs._
 import org.apache.jena.rdf.model.Model
 import org.apache.jena.riot.{Lang, RDFDataMgr}
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{Dataset, SparkSession}
 
 case class MsdUtils(
                      rootDir : String = "/rdf",
@@ -54,7 +53,7 @@ case class MsdUtils(
     finally out.close
   }
 
-  def writeDataframeAsTxt(spark: SparkSession , contain:RDD[String], outputPathFile : String): Unit = {
+  def writeDataframeAsTxt(spark: SparkSession, contain:Dataset[String], outputPathFile : String): Unit = {
     import spark.implicits._
 
     val outDir : String = basedir+"/"+versionUsed
