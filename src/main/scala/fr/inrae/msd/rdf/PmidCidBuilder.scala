@@ -6,6 +6,7 @@ import org.apache.jena.graph.Triple
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Dataset, Encoder, Encoders, SparkSession}
 
+import java.text.SimpleDateFormat
 import java.util.Date
 
 /**
@@ -30,7 +31,6 @@ object PmidCidBuilder extends App {
                      pubchemDatabaseMsd : String = "reference", // "/rdf/pubchem/reference/2021-11-23",
                      pubchemVersionMsd: Option[String] = None,
                      implGetPMID: Int = 0, /* 0 : Dataset[Triple], 1 : [RDD[Binding], 2 : Triples.getSubject */
-                     referenceUriPrefix: String = "http://rdf.ncbi.nlm.nih.gov/pubchem/reference/PMID",
                      packSize : Int = 5000,
                      apiKey : Option[String] = Some("30bc501ba6ab4cba2feedffb726cbe825c0a"),
                      timeout : Int = 1200,
@@ -126,38 +126,17 @@ object PmidCidBuilder extends App {
               database=config.pubchemDatabaseMsd).getLastVersion
           },
           config.implGetPMID,
-          config.referenceUriPrefix,
           config.packSize,
           config.apiKey match {
             case Some(apiK) => apiK
             case None => ""
-          },
-          config.timeout,
-          config.verbose,
-          config.debug)
+          })
       case _ =>
         // arguments are bad, error message will have been displayed
         System.err.println("exit with error.")
     }
 
 
-  /**
-   * First execution of the work.
-   * Build asso PMID <-> CID and a list f PMID error
-   * @param rootMsdDirectory
-   * @param forumCategoryMsd
-   * @param forumDatabaseMsd
-   * @param categoryMsd
-   * @param databaseMsd
-   * @param versionMsd
-   * @param implGetPMID
-   * @param referenceUriPrefix
-   * @param packSize
-   * @param apiKey
-   * @param timeout
-   * @param verbose
-   * @param debug
-   */
   def build(
              rootMsdDirectory : String,
              forumCategoryMsd : String,
@@ -166,12 +145,8 @@ object PmidCidBuilder extends App {
              databaseMsd : String,
              versionMsd: String,
              implGetPMID: Int,
-             referenceUriPrefix: String,
              packSize : Int,
-             apiKey : String,
-             timeout : Int,
-             verbose: Boolean,
-             debug: Boolean) : Unit = {
+             apiKey : String) : Unit = {
 
     val startBuild = new Date()
 
@@ -183,7 +158,7 @@ object PmidCidBuilder extends App {
       spark=spark,
       category=categoryMsd,
       database=databaseMsd,
-      version=versionMsd).getListFiles(".*_type.*\\.ttl")
+      version=Some(versionMsd)).getListFiles(".*_type.*\\.ttl")
 
     println("================listReferenceFileNames==============")
     println(listReferenceFileNames)
@@ -203,10 +178,10 @@ object PmidCidBuilder extends App {
       }))
       val numberOfPmid = pmids.count()
 
-    println("PATITION BEFORE="+ pmids.partitions.size)
+    println("PATITION BEFORE="+ pmids.partitions.length)
     /* repartition to optimize elink http request */
     val pmidsRep : RDD[String] = pmids.repartition(numPartitions = (numberOfPmid / packSize).toInt + 1) /* repartition to call elink process */
-    println("PATITION NEXT="+ pmidsRep.partitions.size)
+    println("PATITION NEXT="+ pmidsRep.partitions.length)
 
     import spark.implicits._
     val pmidCitoDiscussesCid : RDD[Either[Seq[ElinkData],Seq[String]]] = EUtils.elink(apikey=apiKey,dbFrom="pubmed", db="pccompound",pmidsRep)
@@ -216,14 +191,14 @@ object PmidCidBuilder extends App {
     pmidCitoDiscussesCid.take(5).foreach(println)
     println("=================================")
 */
-    implicit val encoderSchema = Encoders.product[ElinkData]
+    implicit val encoderSchema: Encoder[ElinkData] = Encoders.product[ElinkData]
     implicit val seqStringStringEncoder: Encoder[(String,Seq[String])] = Encoders.product[(String,Seq[String])]
 
     val pmidCitoDiscussesCidOk : Dataset[(String,Seq[String])] =
       pmidCitoDiscussesCid
         .filter( _.isLeft )
         .flatMap( _.left.get )
-        .map( v => (v.pmid -> v.cids) ).toDS()
+        .map( v => v.pmid -> v.cids ).toDS()
 
     val pmidCitoDiscussesCidKo : Dataset[String] = pmidCitoDiscussesCid.filter( _.isRight ).flatMap(v => v.right.get ).toDS()
 
@@ -237,17 +212,20 @@ object PmidCidBuilder extends App {
     //println(" pmid all    :" + pmidCitoDiscussesCid.count())
     //println(" pmid problem:" + pmidCitoDiscussesCidKo.count())
     //println(" pmid OK     :" + pmidCitoDiscussesCidOk.count())
+    println(s"================== BUILD VERSION ===================================")
+    val formatter = new SimpleDateFormat("yyyy-MM-dd-HHmmss")
+    val dateVersion : String = formatter.format(new Date())
+    val versionPMIDCID = s"${versionMsd}_$dateVersion"
     println(s"=====================================================")
     println(s"=====================================================")
-    println(s"=====================================================")
-    println(s"================ Write Turtle $rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/error_with_pmid ==============")
+    println(s"================ Write Turtle $rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionPMIDCID/error_with_pmid ==============")
 
     MsdUtils(
       rootDir=rootMsdDirectory,
       spark=spark,
       category=forumCategoryMsd,
       database=forumDatabaseMsd,
-      version=versionMsd).writeDataframeAsTxt(spark,pmidCitoDiscussesCidKo,"error_with_pmid")
+      version=Some(versionPMIDCID)).writeDataframeAsTxt(spark,pmidCitoDiscussesCidKo,"error_with_pmid")
 
     val triples_asso_pmid_cid : Dataset[Triple] = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCidOk)
     val triples_contributor : Dataset[Triple] = PmidCidWork.buildContributors(spark,contributors)
@@ -255,15 +233,15 @@ object PmidCidBuilder extends App {
 
     import net.sansa_stack.rdf.spark.io._
     triples_asso_pmid_cid.rdd.saveAsNTriplesFile(s"$rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl",mode=SaveMode.Overwrite)
-
     triples_contributor.rdd.saveAsNTriplesFile(s"$rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid_endpoints.ttl",mode=SaveMode.Overwrite)
+
 
     val contentProvenanceRDF : String =
       ProvenanceBuilder.provSparkSubmit(
       projectUrl ="https://github.com/p2m2/msd-metdisease-database-pmid-cid-builder",
       category = forumCategoryMsd,
       database = forumDatabaseMsd,
-      release=versionMsd,
+      release=versionPMIDCID,
       startDate = startBuild,
       spark
     )
@@ -272,8 +250,8 @@ object PmidCidBuilder extends App {
       rootDir=rootMsdDirectory,
       spark=spark,
       category="prov",
-      database=forumDatabaseMsd,
-      version=versionMsd).writeFile(spark,contentProvenanceRDF,"msd-metdisease-database-pmid-cid-builder-"+versionMsd+".ttl")
+      database="",
+      version=Some("")).writeFile(spark,contentProvenanceRDF,"msd-metdisease-database-pmid-cid-builder-"+versionPMIDCID+".ttl")
 
     spark.close()
   }

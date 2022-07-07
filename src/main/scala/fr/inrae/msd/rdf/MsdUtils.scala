@@ -10,14 +10,14 @@ case class MsdUtils(
                      spark : SparkSession,
                      category : String,
                      database : String,
-                     version : String = ""
+                     version : Option[String] = None
                      ) {
 
   val basedir : String     = s"$rootDir/$category/$database/"
   val fs: FileSystem       = org.apache.hadoop.fs.FileSystem.get(spark.sparkContext.hadoopConfiguration)
   val versionUsed : String = version match {
-    case v if v.isEmpty => getLastVersion
-    case _ => version
+    case None => getLastVersion
+    case Some(version) => version
   }
 
   def getLastVersion: String = {
