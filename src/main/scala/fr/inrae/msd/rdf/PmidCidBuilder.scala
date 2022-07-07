@@ -104,6 +104,7 @@ object PmidCidBuilder extends App {
     .config("spark.kryo.registrator","net.sansa_stack.rdf.spark.io.JenaKryoRegistrator")
     .getOrCreate()
 
+  spark.sparkContext.setLogLevel("WARN")
 
     // OParser.parse returns Option[Config]
     OParser.parse(parser1, args, Config()) match {
@@ -207,16 +208,14 @@ object PmidCidBuilder extends App {
     val pmidsRep : RDD[String] = pmids.repartition(numPartitions = (numberOfPmid / packSize).toInt + 1) /* repartition to call elink process */
     println("PATITION NEXT="+ pmidsRep.partitions.size)
 
-    println(s"================PMID List ($numberOfPmid)==============")
-    println(pmids.take(10).slice(1, 10).mkString("Array(", ", ", ")")+"...")
     import spark.implicits._
     val pmidCitoDiscussesCid : RDD[Either[Seq[ElinkData],Seq[String]]] = EUtils.elink(apikey=apiKey,dbFrom="pubmed", db="pccompound",pmidsRep)
     //println(s"================pmidCitoDiscussesCid (${pmidCitoDiscussesCid.count()})==PARTITION SIZE=${pmidCitoDiscussesCid.partitions.size}============")
-
+/*
     println("=================================")
     pmidCitoDiscussesCid.take(5).foreach(println)
     println("=================================")
-
+*/
     implicit val encoderSchema = Encoders.product[ElinkData]
     implicit val seqStringStringEncoder: Encoder[(String,Seq[String])] = Encoders.product[(String,Seq[String])]
 
@@ -253,11 +252,11 @@ object PmidCidBuilder extends App {
     val triples_asso_pmid_cid : Dataset[Triple] = PmidCidWork.buildCitoDiscusses(pmidCitoDiscussesCidOk)
     val triples_contributor : Dataset[Triple] = PmidCidWork.buildContributors(spark,contributors)
 
-    implicit val nodeTupleEncoder = Encoders.kryo(classOf[Triple])
-    val triples = triples_asso_pmid_cid.union(triples_contributor).rdd
 
     import net.sansa_stack.rdf.spark.io._
-    triples.saveAsNTriplesFile(s"$rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl",mode=SaveMode.Overwrite)
+    triples_asso_pmid_cid.rdd.saveAsNTriplesFile(s"$rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl",mode=SaveMode.Overwrite)
+
+    triples_contributor.rdd.saveAsNTriplesFile(s"$rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid_endpoints.ttl",mode=SaveMode.Overwrite)
 
     val contentProvenanceRDF : String =
       ProvenanceBuilder.provSparkSubmit(
