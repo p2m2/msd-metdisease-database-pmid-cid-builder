@@ -232,8 +232,8 @@ object PmidCidBuilder extends App {
 
 
     import net.sansa_stack.rdf.spark.io._
-    triples_asso_pmid_cid.rdd.saveAsNTriplesFile(s"$rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid.ttl",mode=SaveMode.Overwrite)
-    triples_contributor.rdd.saveAsNTriplesFile(s"$rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionMsd/pmid_cid_endpoints.ttl",mode=SaveMode.Overwrite)
+    triples_asso_pmid_cid.rdd.saveAsNTriplesFile(s"$rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionPMIDCID/pmid_cid.nt",mode=SaveMode.Overwrite)
+    triples_contributor.rdd.saveAsNTriplesFile(s"$rootMsdDirectory/$forumCategoryMsd/$forumDatabaseMsd/$versionPMIDCID/pmid_cid_endpoints.nt",mode=SaveMode.Overwrite)
 
 
     val contentProvenanceRDF : String =
